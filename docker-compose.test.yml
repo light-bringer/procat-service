@@ -6,13 +6,34 @@ services:
     ports:
       - "19010:9010"  # Different ports to avoid conflicts with dev
       - "19020:9020"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9020"]
-      interval: 2s
-      timeout: 2s
-      retries: 10
     environment:
       - SPANNER_EMULATOR_HOST=localhost:9010
+    networks:
+      - test-network
+
+  # Migration service - runs once to set up database
+  migrate-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: test-base
+    depends_on:
+      spanner-test:
+        condition: service_started
+    environment:
+      - SPANNER_EMULATOR_HOST=spanner-test:9010
+      - SPANNER_PROJECT_ID=test-project
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Waiting for Spanner emulator...' &&
+        sleep 5 &&
+        echo 'Setting up test database...' &&
+        go run cmd/migrate/main.go -instance=test-instance -database=product-catalog-test &&
+        echo 'Database ready for tests!'
+      "
     networks:
       - test-network
 
@@ -37,8 +58,8 @@ services:
       dockerfile: Dockerfile.test
       target: test-base
     depends_on:
-      spanner-test:
-        condition: service_healthy
+      migrate-test:
+        condition: service_completed_successfully
     environment:
       - SPANNER_EMULATOR_HOST=spanner-test:9010
       - SPANNER_PROJECT_ID=test-project
@@ -51,8 +72,6 @@ services:
     working_dir: /app
     command: >
       sh -c "
-        echo 'Setting up test database...' &&
-        ./scripts/setup_test_db.sh &&
         echo 'Running integration tests with gotestsum...' &&
         mkdir -p test-results &&
         gotestsum --format testname --junitfile test-results/integration-junit.xml -- -race -count=1 -tags=integration ./tests/integration/...
@@ -67,8 +86,8 @@ services:
       dockerfile: Dockerfile.test
       target: test-base
     depends_on:
-      spanner-test:
-        condition: service_healthy
+      migrate-test:
+        condition: service_completed_successfully
     environment:
       - SPANNER_EMULATOR_HOST=spanner-test:9010
       - SPANNER_PROJECT_ID=test-project
@@ -81,8 +100,6 @@ services:
     working_dir: /app
     command: >
       sh -c "
-        echo 'Setting up test database...' &&
-        ./scripts/setup_test_db.sh &&
         echo 'Running E2E tests with gotestsum...' &&
         mkdir -p test-results &&
         gotestsum --format testname --junitfile test-results/e2e-junit.xml -- -race -count=1 -timeout=5m ./tests/e2e/...
@@ -97,8 +114,8 @@ services:
       dockerfile: Dockerfile.test
       target: test-base
     depends_on:
-      spanner-test:
-        condition: service_healthy
+      migrate-test:
+        condition: service_completed_successfully
     environment:
       - SPANNER_EMULATOR_HOST=spanner-test:9010
       - SPANNER_PROJECT_ID=test-project
@@ -119,16 +136,13 @@ services:
         echo '1. Running Unit Tests...' &&
         gotestsum --format testname --junitfile test-results/unit-junit.xml -- -race -count=1 ./internal/app/product/domain/... &&
         echo '' &&
-        echo '2. Setting up test database...' &&
-        ./scripts/setup_test_db.sh &&
-        echo '' &&
-        echo '3. Running Integration Tests...' &&
+        echo '2. Running Integration Tests...' &&
         gotestsum --format testname --junitfile test-results/integration-junit.xml -- -race -count=1 -tags=integration ./tests/integration/... &&
         echo '' &&
-        echo '4. Running E2E Tests...' &&
+        echo '3. Running E2E Tests...' &&
         gotestsum --format testname --junitfile test-results/e2e-junit.xml -- -race -count=1 -timeout=5m ./tests/e2e/... &&
         echo '' &&
-        echo '5. Generating Coverage Report...' &&
+        echo '4. Generating Coverage Report...' &&
         gotestsum --format testname -- -coverprofile=test-results/coverage.out -covermode=atomic ./... &&
         go tool cover -html=test-results/coverage.out -o test-results/coverage.html &&
         go tool cover -func=test-results/coverage.out | tail -1 &&
@@ -145,8 +159,8 @@ services:
       dockerfile: Dockerfile.test
       target: test-base
     depends_on:
-      spanner-test:
-        condition: service_healthy
+      migrate-test:
+        condition: service_completed_successfully
     environment:
       - SPANNER_EMULATOR_HOST=spanner-test:9010
       - SPANNER_PROJECT_ID=test-project
@@ -157,7 +171,6 @@ services:
     working_dir: /app
     command: >
       sh -c "
-        ./scripts/setup_test_db.sh &&
         go test -coverprofile=coverage-reports/coverage.out -covermode=atomic ./... &&
         go tool cover -html=coverage-reports/coverage.out -o coverage-reports/coverage.html &&
         go tool cover -func=coverage-reports/coverage.out

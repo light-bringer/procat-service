@@ -193,9 +193,9 @@ func TestDiscountTimeValidity(t *testing.T) {
 		mockClock.Set(time.Date(2025, 5, 31, 12, 0, 0, 0, time.UTC))
 
 		dto, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
-		// Note: Read model calculates at query time, not at discount application time
-		// In a real implementation, you'd need to pass current time to the query
-		// For now, this demonstrates the time-based discount logic
-		assert.NotNil(t, dto.DiscountPercent) // Discount exists
+		// Read model calculates at query time - discount should be inactive before start date
+		assert.False(t, dto.DiscountActive)
+		assert.Equal(t, 100.00, dto.EffectivePrice) // No discount applied
+		assert.Nil(t, dto.DiscountPercent)          // Discount not shown when inactive
 	})
 }

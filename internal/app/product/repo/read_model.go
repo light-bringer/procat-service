@@ -13,18 +13,21 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/models/m_product"
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/internal/pkg/query"
 )
 
 // ReadModelImpl implements ReadModel for Spanner.
 type ReadModelImpl struct {
 	client *spanner.Client
+	clock  clock.Clock
 }
 
 // NewReadModel creates a new ReadModel implementation.
-func NewReadModel(client *spanner.Client) contracts.ReadModel {
+func NewReadModel(client *spanner.Client, clk clock.Clock) contracts.ReadModel {
 	return &ReadModelImpl{
 		client: client,
+		clock:  clk,
 	}
 }
 
@@ -56,7 +59,7 @@ func (rm *ReadModelImpl) GetProductByID(ctx context.Context, productID string) (
 		return nil, fmt.Errorf("failed to parse product: %w", err)
 	}
 
-	return rm.dataToDTO(&data, time.Now())
+	return rm.dataToDTO(&data, rm.clock.Now())
 }
 
 // ListProducts retrieves a paginated list of products with filtering.
@@ -110,7 +113,7 @@ func (rm *ReadModelImpl) ListProducts(ctx context.Context, filter *contracts.Lis
 	iter := rm.client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
-	now := time.Now()
+	now := rm.clock.Now()
 	products := make([]*contracts.ProductDTO, 0, pageSize+1)
 
 	for {

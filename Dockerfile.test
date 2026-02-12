@@ -3,28 +3,23 @@
 # Base test image with all dependencies
 FROM golang:1.25-alpine AS test-base
 
-# Install required packages
+# Install required packages including CGO dependencies for race detector
 RUN apk add --no-cache \
     make \
     git \
     curl \
     bash \
-    ca-certificates
+    ca-certificates \
+    gcc \
+    musl-dev
+
+# Enable CGO for race detector
+ENV CGO_ENABLED=1
 
 WORKDIR /app
 
-# Install gcloud CLI for Spanner emulator operations
-RUN apk add --no-cache python3 py3-pip && \
-    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz && \
-    tar -xf google-cloud-cli-linux-x86_64.tar.gz && \
-    ./google-cloud-sdk/install.sh --quiet && \
-    rm google-cloud-cli-linux-x86_64.tar.gz
-
-ENV PATH="/app/google-cloud-sdk/bin:${PATH}"
-
 # Install Go test tools
-RUN go install github.com/google/go-cloud/cmd/spanner-cli@latest && \
-    go install gotest.tools/gotestsum@latest
+RUN go install gotest.tools/gotestsum@latest
 
 # Copy go mod files for dependency caching
 COPY go.mod go.sum ./

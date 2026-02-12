@@ -55,7 +55,7 @@ func setupTest(t *testing.T) (*Services, func()) {
 	// Create repositories
 	productRepo := repo.NewProductRepo(client)
 	outboxRepo := repo.NewOutboxRepo(client)
-	readModel := repo.NewReadModel(client)
+	readModel := repo.NewReadModel(client, clk)
 
 	// Create command use cases
 	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -101,7 +101,7 @@ func setupTestWithMockClock(t *testing.T) (*Services, *clock.MockClock, func()) 
 	// Create repositories
 	productRepo := repo.NewProductRepo(client)
 	outboxRepo := repo.NewOutboxRepo(client)
-	readModel := repo.NewReadModel(client)
+	readModel := repo.NewReadModel(client, mockClock)
 
 	// Create command use cases with mock clock
 	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)

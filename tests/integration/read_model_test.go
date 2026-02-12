@@ -11,6 +11,7 @@ import (
 
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/repo"
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/tests/testutil"
 )
 
@@ -19,7 +20,7 @@ func TestReadModel_GetProductByID(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	readModel := repo.NewReadModel(client)
+	readModel := repo.NewReadModel(client, clock.NewRealClock())
 
 	t.Run("product found", func(t *testing.T) {
 		// Create test product
@@ -58,7 +59,7 @@ func TestReadModel_ListProducts(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	readModel := repo.NewReadModel(client)
+	readModel := repo.NewReadModel(client, clock.NewRealClock())
 
 	// Create test products in different categories
 	testutil.CreateTestProduct(t, client, "Product 1")
@@ -135,7 +136,7 @@ func TestReadModel_ListProducts_EmptyResult(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	readModel := repo.NewReadModel(client)
+	readModel := repo.NewReadModel(client, clock.NewRealClock())
 
 	filter := &contracts.ListFilter{
 		Category: "non-existent-category",

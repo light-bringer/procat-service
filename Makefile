@@ -175,7 +175,7 @@ build: ## Build the service binary
 
 .PHONY: run
 run: ## Run the gRPC server locally
-	go run ./cmd/server/
+	SPANNER_EMULATOR_HOST=localhost:9010 go run ./cmd/server/
 
 .PHONY: run-dev
 run-dev: docker-up migrate ## Start dev environment and run server
