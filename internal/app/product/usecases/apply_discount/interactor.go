@@ -15,7 +15,8 @@ import (
 // Request contains the data to apply a discount.
 type Request struct {
 	ProductID       string
-	DiscountPercent int64
+	Version         int64   // For optimistic locking
+	DiscountPercent float64 // Supports fractional values (e.g., 12.5 for 12.5%)
 	StartDate       time.Time
 	EndDate         time.Time
 }
@@ -82,9 +83,16 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		plan.Add(i.outboxRepo.InsertMut(outboxEvent))
 	}
 
-	// 7. Apply plan
-	if err := i.committer.Apply(ctx, plan); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	// 7. Apply plan with optional optimistic locking (backwards compatible)
+	// Use version check if version is provided (non-zero), otherwise use regular Apply
+	if req.Version != 0 {
+		if err := i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+	} else {
+		if err := i.committer.Apply(ctx, plan); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
 	}
 
 	return nil

@@ -42,7 +42,17 @@ type Product struct {
 	updatedAt   time.Time
 	archivedAt  *time.Time
 
-	// Clock for time operations (injected for testability)
+	// Clock for time operations (injected for testability).
+	//
+	// Note: While pure domain-driven design typically avoids infrastructure dependencies,
+	// using a clock interface is an acceptable pragmatic choice for the following reasons:
+	//   1. Testability: Allows deterministic testing of time-dependent business logic
+	//   2. Simplicity: Avoids passing time.Time to every domain method
+	//   3. Stability: time.Time is a core Go type, unlikely to change significantly
+	//   4. Lightweight: The clock interface is a minimal abstraction with no external dependencies
+	//
+	// This is a deliberate trade-off documented as an architectural decision.
+	// The domain remains largely pure - this is the only infrastructure dependency allowed.
 	clock clock.Clock
 
 	// Change tracking for optimized repository updates
@@ -132,23 +142,18 @@ func ReconstructProduct(
 }
 
 // Getters
-func (p *Product) ID() string                 { return p.id }
-func (p *Product) Name() string               { return p.name }
-func (p *Product) Description() string        { return p.description }
-func (p *Product) Category() string           { return p.category }
-func (p *Product) BasePrice() *Money          { return p.basePrice.Copy() }
-func (p *Product) Status() ProductStatus      { return p.status }
-func (p *Product) Version() int64             { return p.version }
-func (p *Product) CreatedAt() time.Time       { return p.createdAt }
-func (p *Product) UpdatedAt() time.Time       { return p.updatedAt }
-func (p *Product) ArchivedAt() *time.Time     { return p.archivedAt }
-func (p *Product) Changes() *ChangeTracker    { return p.changes }
+func (p *Product) ID() string                  { return p.id }
+func (p *Product) Name() string                { return p.name }
+func (p *Product) Description() string         { return p.description }
+func (p *Product) Category() string            { return p.category }
+func (p *Product) BasePrice() *Money           { return p.basePrice.Copy() }
+func (p *Product) Status() ProductStatus       { return p.status }
+func (p *Product) Version() int64              { return p.version }
+func (p *Product) CreatedAt() time.Time        { return p.createdAt }
+func (p *Product) UpdatedAt() time.Time        { return p.updatedAt }
+func (p *Product) ArchivedAt() *time.Time      { return p.archivedAt }
+func (p *Product) Changes() *ChangeTracker     { return p.changes }
 func (p *Product) DomainEvents() []DomainEvent { return p.events }
-
-// Discount returns the raw discount pointer. Use with caution - check for nil before use.
-// Prefer using HasDiscount() for nil checks and DiscountCopy() for safe access.
-// DEPRECATED: This method exposes internal state. Use DiscountCopy() instead.
-func (p *Product) Discount() *Discount { return p.discount }
 
 // HasDiscount returns true if the product has a discount (not nil).
 func (p *Product) HasDiscount() bool {

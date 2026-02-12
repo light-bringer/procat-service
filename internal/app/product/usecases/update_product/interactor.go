@@ -14,6 +14,7 @@ import (
 // Request contains the data to update a product.
 type Request struct {
 	ProductID   string
+	Version     int64   // For optimistic locking
 	Name        *string // nil = no change
 	Description *string // nil = no change
 	Category    *string // nil = no change
@@ -100,13 +101,20 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		plan.Add(i.outboxRepo.InsertMut(outboxEvent))
 	}
 
-	// 6. Apply plan
+	// 6. Apply plan with optional optimistic locking (backwards compatible)
 	if plan.IsEmpty() {
 		return nil // No changes
 	}
 
-	if err := i.committer.Apply(ctx, plan); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	// Use version check if version is provided (non-zero), otherwise use regular Apply for backwards compatibility
+	if req.Version != 0 {
+		if err := i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+	} else {
+		if err := i.committer.Apply(ctx, plan); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
 	}
 
 	return nil

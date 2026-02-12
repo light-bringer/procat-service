@@ -37,11 +37,12 @@ message Product {
   string category = 4;
   double base_price = 5;
   double effective_price = 6;
-  optional int64 discount_percent = 7;
+  optional double discount_percent = 7; // Supports fractional values (e.g., 12.5 for 12.5%)
   bool discount_active = 8;
   string status = 9;
   google.protobuf.Timestamp created_at = 10;
   google.protobuf.Timestamp updated_at = 11;
+  optional google.protobuf.Timestamp archived_at = 12; // When product was archived (if archived)
 }
 
 // CreateProduct
@@ -59,9 +60,10 @@ message CreateProductReply {
 // UpdateProduct
 message UpdateProductRequest {
   string product_id = 1;
-  optional string name = 2;
-  optional string description = 3;
-  optional string category = 4;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
+  optional string name = 3;
+  optional string description = 4;
+  optional string category = 5;
 }
 
 message UpdateProductReply {
@@ -71,6 +73,7 @@ message UpdateProductReply {
 // ActivateProduct
 message ActivateProductRequest {
   string product_id = 1;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
 }
 
 message ActivateProductReply {
@@ -80,6 +83,7 @@ message ActivateProductReply {
 // DeactivateProduct
 message DeactivateProductRequest {
   string product_id = 1;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
 }
 
 message DeactivateProductReply {
@@ -89,9 +93,10 @@ message DeactivateProductReply {
 // ApplyDiscount
 message ApplyDiscountRequest {
   string product_id = 1;
-  int64 discount_percent = 2;
-  google.protobuf.Timestamp start_date = 3;
-  google.protobuf.Timestamp end_date = 4;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
+  double discount_percent = 3; // Supports fractional values (e.g., 12.5 for 12.5%)
+  google.protobuf.Timestamp start_date = 4;
+  google.protobuf.Timestamp end_date = 5;
 }
 
 message ApplyDiscountReply {
@@ -101,6 +106,7 @@ message ApplyDiscountReply {
 // RemoveDiscount
 message RemoveDiscountRequest {
   string product_id = 1;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
 }
 
 message RemoveDiscountReply {
@@ -110,6 +116,7 @@ message RemoveDiscountReply {
 // ArchiveProduct
 message ArchiveProductRequest {
   string product_id = 1;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
 }
 
 message ArchiveProductReply {
@@ -152,10 +159,10 @@ message Event {
 
 // ListEvents
 message ListEventsRequest {
-  optional string event_type = 1;    // Filter by event type (e.g., "product.created")
-  optional string aggregate_id = 2;  // Filter by aggregate ID
-  optional string status = 3;        // Filter by status ("pending", "processed", "failed")
-  int32 limit = 4;                   // Max number of events to return (default: 100)
+  optional string event_type = 1; // Filter by event type (e.g., "product.created")
+  optional string aggregate_id = 2; // Filter by aggregate ID
+  optional string status = 3; // Filter by status ("pending", "processed", "failed")
+  int32 limit = 4; // Max number of events to return (default: 100)
 }
 
 message ListEventsReply {

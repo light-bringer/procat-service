@@ -1,3 +1,63 @@
+// Package committer implements the Golden Mutation Pattern for Spanner transactions.
+//
+// # Deviation from Requirements
+//
+// The requirements specified using "github.com/Vektor-AI/commitplan" with Spanner driver.
+// However, this library is not publicly available on GitHub or any Go package repository.
+// This custom implementation provides the same functionality and architectural goals.
+//
+// # Architectural Goals
+//
+// This implementation achieves the following design goals specified in the requirements:
+//
+//  1. Separation of Concerns: Domain logic is separated from persistence concerns.
+//     - Domain aggregates call methods that modify state
+//     - Repositories return Spanner mutations (not directly applying them)
+//     - Usecases collect mutations into a CommitPlan
+//     - CommitPlan is applied atomically at the end
+//
+//  2. Atomicity: All mutations in a CommitPlan are applied in a single transaction.
+//     - Multiple aggregate changes can be committed together
+//     - Outbox events are written in the same transaction
+//     - Either all mutations succeed or all fail (no partial updates)
+//
+//  3. Testability: The pattern makes testing easier:
+//     - Domain logic can be tested without database
+//     - Repository tests can verify mutations without applying them
+//     - Usecase tests can inspect the CommitPlan before commit
+//
+//  4. Optimistic Locking: Built-in support for version-based concurrency control
+//     - ApplyWithVersionCheck prevents lost updates
+//     - Detects concurrent modifications
+//     - Returns meaningful errors for conflict resolution
+//
+// # Usage Pattern (Golden Mutation Pattern)
+//
+// The typical flow in a usecase is:
+//
+//	// 1. Load aggregate from repository
+//	product, err := repo.GetByID(ctx, productID)
+//
+//	// 2. Call domain methods (pure business logic)
+//	if err := product.Activate(); err != nil {
+//	    return err
+//	}
+//
+//	// 3. Repository returns mutations (doesn't apply them)
+//	plan := committer.NewPlan()
+//	productMut := repo.UpdateMut(product)
+//	plan.Add(productMut)
+//
+//	// 4. Add outbox events to the same plan
+//	for _, event := range product.DomainEvents() {
+//	    eventMut := outboxRepo.CreateMut(event)
+//	    plan.Add(eventMut)
+//	}
+//
+//	// 5. Apply everything atomically
+//	return committer.Apply(ctx, plan)
+//
+// This pattern ensures domain purity while maintaining transactional consistency.
 package committer
 
 import (

@@ -64,13 +64,13 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	}
 
 	if changes.Dirty(domain.FieldDiscount) {
-		discount := product.Discount()
+		discount := product.DiscountCopy() // Use DiscountCopy() instead of deprecated Discount()
 		if discount != nil {
-			updates[m_product.DiscountPercent] = discount.Percentage()
+			updates[m_product.DiscountPercent] = discount.Percentage() // Now float64
 			updates[m_product.DiscountStartDate] = discount.StartDate()
 			updates[m_product.DiscountEndDate] = discount.EndDate()
 		} else {
-			updates[m_product.DiscountPercent] = spanner.NullInt64{}
+			updates[m_product.DiscountPercent] = spanner.NullFloat64{}
 			updates[m_product.DiscountStartDate] = spanner.NullTime{}
 			updates[m_product.DiscountEndDate] = spanner.NullTime{}
 		}
@@ -165,8 +165,8 @@ func (r *ProductRepo) domainToData(product *domain.Product) *m_product.Data {
 	}
 
 	// Handle discount (nullable)
-	if discount := product.Discount(); discount != nil {
-		data.DiscountPercent = spanner.NullInt64{Int64: discount.Percentage(), Valid: true}
+	if discount := product.DiscountCopy(); discount != nil { // Use DiscountCopy() instead of deprecated Discount()
+		data.DiscountPercent = spanner.NullFloat64{Float64: discount.Percentage(), Valid: true} // Now float64
 		data.DiscountStartDate = spanner.NullTime{Time: discount.StartDate(), Valid: true}
 		data.DiscountEndDate = spanner.NullTime{Time: discount.EndDate(), Valid: true}
 	}
@@ -189,7 +189,7 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 	var discount *domain.Discount
 	if data.DiscountPercent.Valid {
 		discount, err = domain.NewDiscount(
-			data.DiscountPercent.Int64,
+			data.DiscountPercent.Float64, // Changed from Int64 to Float64 for fractional percentages
 			data.DiscountStartDate.Time,
 			data.DiscountEndDate.Time,
 		)

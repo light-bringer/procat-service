@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS products (
   -- Price stored as rational number (numerator/denominator)
   base_price_numerator INT64 NOT NULL,
   base_price_denominator INT64 NOT NULL,
-  -- Discount fields
-  discount_percent INT64,
+  -- Discount fields (NUMERIC allows fractional percentages like 12.5%)
+  discount_percent NUMERIC,
   discount_start_date TIMESTAMP,
   discount_end_date TIMESTAMP,
   -- Status: active, inactive, archived

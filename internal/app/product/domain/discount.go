@@ -7,19 +7,21 @@ import (
 )
 
 // Discount represents a time-bound percentage discount on a product.
+// Supports fractional percentages (e.g., 12.5%, 7.25%) for flexible pricing.
 type Discount struct {
-	percentage         int64      // 0-100
+	percentage         float64 // 0.0-100.0, supports fractional values (e.g., 12.5)
 	startDate          time.Time
 	endDate            time.Time
-	discountMultiplier *big.Rat   // Cached percentage/100 for performance
+	discountMultiplier *big.Rat // Cached percentage/100 for performance
 }
 
 // NewDiscount creates a new Discount with validation.
 // All dates must be in UTC timezone to prevent ambiguity across distributed systems.
 // Discount duration is limited to 2 years maximum for business policy compliance.
-func NewDiscount(percentage int64, startDate, endDate time.Time) (*Discount, error) {
+// Percentage supports fractional values (e.g., 12.5 for 12.5% discount).
+func NewDiscount(percentage float64, startDate, endDate time.Time) (*Discount, error) {
 	if percentage < 0 || percentage > 100 {
-		return nil, fmt.Errorf("discount percentage must be between 0 and 100, got %d", percentage)
+		return nil, fmt.Errorf("discount percentage must be between 0 and 100, got %.2f", percentage)
 	}
 
 	// Require UTC timezone for consistency
@@ -34,14 +36,15 @@ func NewDiscount(percentage int64, startDate, endDate time.Time) (*Discount, err
 		return nil, ErrInvalidDiscountPeriod
 	}
 
-	// Limit discount duration to 2 years
-	maxDuration := 2 * 365 * 24 * time.Hour // 2 years
-	if endDate.Sub(startDate) > maxDuration {
+	// Limit discount duration to 2 years (extract to const per code review recommendation)
+	const MaxDiscountDuration = 2 * 365 * 24 * time.Hour
+	if endDate.Sub(startDate) > MaxDiscountDuration {
 		return nil, fmt.Errorf("discount duration cannot exceed 2 years")
 	}
 
 	// Pre-calculate discount multiplier for performance (avoids allocation on every Apply())
-	discountMultiplier := big.NewRat(percentage, 100)
+	// Convert float64 to rational number for precise arithmetic
+	discountMultiplier := new(big.Rat).SetFloat64(percentage / 100.0)
 
 	return &Discount{
 		percentage:         percentage,
@@ -51,8 +54,8 @@ func NewDiscount(percentage int64, startDate, endDate time.Time) (*Discount, err
 	}, nil
 }
 
-// Percentage returns the discount percentage.
-func (d *Discount) Percentage() int64 {
+// Percentage returns the discount percentage (supports fractional values).
+func (d *Discount) Percentage() float64 {
 	return d.percentage
 }
 
@@ -70,6 +73,7 @@ func (d *Discount) EndDate() time.Time {
 // The discount period is INCLUSIVE on both ends:
 //   - startDate: Valid from startDate onwards (t >= startDate)
 //   - endDate: Valid through endDate including the entire day (t <= endDate)
+//
 // Example: If endDate is 2024-12-31 23:59:59.999999999 UTC, the discount is valid through that nanosecond.
 func (d *Discount) IsValidAt(t time.Time) bool {
 	return !t.Before(d.startDate) && !t.After(d.endDate)

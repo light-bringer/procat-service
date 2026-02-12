@@ -14,6 +14,7 @@ import (
 // Request contains the product ID to deactivate.
 type Request struct {
 	ProductID string
+	Version   int64 // For optimistic locking
 }
 
 // Interactor handles the deactivate product use case.
@@ -72,9 +73,16 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		plan.Add(i.outboxRepo.InsertMut(outboxEvent))
 	}
 
-	// 6. Apply plan
-	if err := i.committer.Apply(ctx, plan); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	// 6. Apply plan with optional optimistic locking (backwards compatible)
+	// Use version check if version is provided (non-zero), otherwise use regular Apply
+	if req.Version != 0 {
+		if err := i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
+	} else {
+		if err := i.committer.Apply(ctx, plan); err != nil {
+			return fmt.Errorf("failed to commit transaction: %w", err)
+		}
 	}
 
 	return nil
