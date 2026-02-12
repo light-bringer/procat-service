@@ -46,7 +46,13 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 	discount1, _ := domain.NewDiscount(10, startDate, endDate) // 10% off
 	discount2, _ := domain.NewDiscount(20, startDate, endDate) // 20% off
 
-	// Apply two discounts concurrently
+	// Fetch the product to get its current version
+	productBefore, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
+	require.NoError(t, err)
+	currentVersion := productBefore.Version
+
+	// Apply two discounts concurrently with the same version
+	// One should succeed, one should fail due to optimistic locking
 	var wg sync.WaitGroup
 	var err1, err2 error
 
@@ -56,6 +62,7 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 		defer wg.Done()
 		req := &apply_discount.Request{
 			ProductID:       productID,
+			Version:         currentVersion, // Use current version
 			DiscountPercent: discount1.Percentage(),
 			StartDate:       discount1.StartDate(),
 			EndDate:         discount1.EndDate(),
@@ -67,6 +74,7 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 		defer wg.Done()
 		req := &apply_discount.Request{
 			ProductID:       productID,
+			Version:         currentVersion, // Use same version - will cause conflict
 			DiscountPercent: discount2.Percentage(),
 			StartDate:       discount2.StartDate(),
 			EndDate:         discount2.EndDate(),
@@ -112,7 +120,13 @@ func TestConcurrentProductUpdates(t *testing.T) {
 	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
 
-	// Update different fields concurrently
+	// Fetch the product to get its current version
+	productBefore, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
+	require.NoError(t, err)
+	currentVersion := productBefore.Version
+
+	// Update different fields concurrently with the same version
+	// One should succeed, one should fail due to optimistic locking
 	var wg sync.WaitGroup
 	var err1, err2 error
 
@@ -125,6 +139,7 @@ func TestConcurrentProductUpdates(t *testing.T) {
 		defer wg.Done()
 		req := &update_product.Request{
 			ProductID: productID,
+			Version:   currentVersion, // Use current version
 			Name:      &newName,
 		}
 		err1 = suite.UpdateProduct.Execute(ctx, req)
@@ -134,6 +149,7 @@ func TestConcurrentProductUpdates(t *testing.T) {
 		defer wg.Done()
 		req := &update_product.Request{
 			ProductID:   productID,
+			Version:     currentVersion, // Use same version - will cause conflict
 			Description: &newDescription,
 		}
 		err2 = suite.UpdateProduct.Execute(ctx, req)

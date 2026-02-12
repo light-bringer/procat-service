@@ -16,8 +16,10 @@ type ProductDTO struct {
 	DiscountPercent *float64 // Changed from *int64 to *float64 for fractional percentages
 	DiscountActive  bool
 	Status          string
+	Version         int64 // For optimistic locking
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	ArchivedAt      *time.Time
 }
 
 // ListFilter defines filtering options for listing products.

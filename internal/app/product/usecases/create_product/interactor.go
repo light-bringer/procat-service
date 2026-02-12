@@ -23,11 +23,11 @@ type Request struct {
 
 // Interactor handles the create product use case.
 type Interactor struct {
-	repo            contracts.ProductRepository
-	outboxRepo      contracts.OutboxRepository
+	repo             contracts.ProductRepository
+	outboxRepo       contracts.OutboxRepository
 	priceHistoryRepo contracts.PriceHistoryRepository
-	committer       *committer.Committer
-	clock           clock.Clock
+	committer        *committer.Committer
+	clock            clock.Clock
 }
 
 // NewInteractor creates a new create product interactor.
@@ -71,8 +71,8 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 		return "", fmt.Errorf("failed to create product: %w", err)
 	}
 
-	// Clear events on function exit (success or failure) to prevent duplicates on retry
-	defer product.ClearEvents()
+	// Note: ClearEvents() is called after successful commit, not in defer
+	// This prevents event loss if the commit fails and the operation is retried
 
 	// 3. Create commit plan
 	plan := committer.NewPlan()
@@ -87,8 +87,8 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 		productID,
 		nil, // oldPrice is nil for initial creation
 		req.BasePrice,
-		"system",           // changedBy - system for initial creation
-		"Initial price",    // changedReason
+		"system",        // changedBy - system for initial creation
+		"Initial price", // changedReason
 		now,
 	))
 
@@ -106,6 +106,9 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 	if err := i.committer.Apply(ctx, plan); err != nil {
 		return "", fmt.Errorf("failed to commit transaction: %w", err)
 	}
+
+	// Clear events only after successful commit to prevent loss on retry
+	product.ClearEvents()
 
 	return product.ID(), nil
 }

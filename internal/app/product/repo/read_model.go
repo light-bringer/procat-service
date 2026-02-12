@@ -44,8 +44,10 @@ func (rm *ReadModelImpl) GetProductByID(ctx context.Context, productID string) (
 		m_product.DiscountStartDate,
 		m_product.DiscountEndDate,
 		m_product.Status,
+		m_product.Version,
 		m_product.CreatedAt,
 		m_product.UpdatedAt,
+		m_product.ArchivedAt,
 	})
 	if err != nil {
 		if spanner.ErrCode(err) == codes.NotFound {
@@ -82,8 +84,10 @@ func (rm *ReadModelImpl) ListProducts(ctx context.Context, filter *contracts.Lis
 			m_product.DiscountStartDate,
 			m_product.DiscountEndDate,
 			m_product.Status,
+			m_product.Version,
 			m_product.CreatedAt,
 			m_product.UpdatedAt,
+			m_product.ArchivedAt,
 		).
 		OrderBy(m_product.CreatedAt, query.Desc)
 
@@ -207,8 +211,14 @@ func (rm *ReadModelImpl) dataToDTO(data *m_product.Data, now time.Time) (*contra
 		BasePrice:      basePriceFloat,
 		EffectivePrice: basePriceFloat,
 		Status:         data.Status,
+		Version:        data.Version,
 		CreatedAt:      data.CreatedAt,
 		UpdatedAt:      data.UpdatedAt,
+	}
+
+	// Handle archived_at
+	if data.ArchivedAt.Valid {
+		dto.ArchivedAt = &data.ArchivedAt.Time
 	}
 
 	// Handle discount

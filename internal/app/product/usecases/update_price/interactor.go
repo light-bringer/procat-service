@@ -61,8 +61,8 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		return err
 	}
 
-	// Clear events on function exit to prevent duplicates on retry
-	defer product.ClearEvents()
+	// Note: ClearEvents() is called after successful commit, not in defer
+	// This prevents event loss if the commit fails and the operation is retried
 
 	// 3. Call domain method
 	oldPrice := product.BasePrice() // Capture old price before change
@@ -112,6 +112,9 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 	if err != nil {
 		return fmt.Errorf("failed to update price: %w", err)
 	}
+
+	// Clear events only after successful commit to prevent loss on retry
+	product.ClearEvents()
 
 	return nil
 }

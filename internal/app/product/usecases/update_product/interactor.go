@@ -51,8 +51,8 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		return err
 	}
 
-	// Clear events on function exit to prevent duplicates on retry
-	defer product.ClearEvents()
+	// Note: ClearEvents() is called after successful commit, not in defer
+	// This prevents event loss if the commit fails and the operation is retried
 
 	// 2. Call domain methods
 	hasChanges := false
@@ -101,21 +101,14 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		plan.Add(i.outboxRepo.InsertMut(outboxEvent))
 	}
 
-	// 6. Apply plan with optional optimistic locking (backwards compatible)
-	if plan.IsEmpty() {
-		return nil // No changes
+	// 6. Apply plan with optimistic locking
+	// Always enforce version checking to prevent concurrent modification issues
+	if err := i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// Use version check if version is provided (non-zero), otherwise use regular Apply for backwards compatibility
-	if req.Version != 0 {
-		if err := i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan); err != nil {
-			return fmt.Errorf("failed to commit transaction: %w", err)
-		}
-	} else {
-		if err := i.committer.Apply(ctx, plan); err != nil {
-			return fmt.Errorf("failed to commit transaction: %w", err)
-		}
-	}
+	// Clear events only after successful commit to prevent loss on retry
+	product.ClearEvents()
 
 	return nil
 }
