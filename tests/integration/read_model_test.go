@@ -50,7 +50,7 @@ func TestReadModel_GetProductByID(t *testing.T) {
 		assert.Equal(t, 80.0, dto.EffectivePrice) // 20% off
 		assert.True(t, dto.DiscountActive)
 		assert.NotNil(t, dto.DiscountPercent)
-		assert.Equal(t, int64(20), *dto.DiscountPercent)
+		assert.Equal(t, 20.0, *dto.DiscountPercent)
 	})
 }
 
@@ -342,7 +342,7 @@ func TestReadConsistency_DiscountCalculations(t *testing.T) {
 		assert.Equal(t, 75.0, dto.EffectivePrice) // 100 - 25% = 75
 		assert.True(t, dto.DiscountActive)
 		assert.NotNil(t, dto.DiscountPercent)
-		assert.Equal(t, int64(25), *dto.DiscountPercent)
+		assert.Equal(t, 25.0, *dto.DiscountPercent)
 	})
 
 	t.Run("100% discount results in zero price", func(t *testing.T) {
