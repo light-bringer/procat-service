@@ -37,23 +37,23 @@ generate: proto ## Run all code generation
 
 .PHONY: docker-up
 docker-up: ## Start development Spanner emulator
-	docker-compose up -d
+	docker compose up -d
 	@echo "Waiting for Spanner emulator to be ready..."
 	@sleep 3
 
 .PHONY: docker-down
 docker-down: ## Stop development Spanner emulator
-	docker-compose down -v
+	docker compose down -v
 
 .PHONY: docker-test-up
 docker-test-up: ## Start test Spanner emulator
-	docker-compose -f docker-compose.test.yml up -d spanner-test
+	docker compose -f docker-compose.test.yml up -d spanner-test
 	@echo "Waiting for test Spanner emulator to be ready..."
 	@sleep 3
 
 .PHONY: docker-test-down
 docker-test-down: ## Stop test environment
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose -f docker-compose.test.yml down -v
 
 # ==================================================================================== #
 # DATABASE MIGRATIONS
@@ -120,41 +120,41 @@ test-coverage: docker-test-up migrate-test ## Run tests with coverage report
 
 .PHONY: test-docker
 test-docker: ## Run tests inside Docker container (CI simulation)
-	docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+	docker compose -f docker-compose.test.yml down -v
 
 .PHONY: docker-test-unit
 docker-test-unit: ## Run unit tests in Docker
-	docker-compose -f docker-compose.test.yml run --rm test-unit
+	docker compose -f docker-compose.test.yml run --rm test-unit
 
 .PHONY: docker-test-integration
 docker-test-integration: ## Run integration tests in Docker with Spanner
-	docker-compose -f docker-compose.test.yml up -d spanner-test
-	docker-compose -f docker-compose.test.yml run --rm test-integration
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose -f docker-compose.test.yml up -d spanner-test
+	docker compose -f docker-compose.test.yml run --rm test-integration
+	docker compose -f docker-compose.test.yml down -v
 
 .PHONY: docker-test-e2e
 docker-test-e2e: ## Run E2E tests in Docker with Spanner
-	docker-compose -f docker-compose.test.yml up -d spanner-test
-	docker-compose -f docker-compose.test.yml run --rm test-e2e
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose -f docker-compose.test.yml up -d spanner-test
+	docker compose -f docker-compose.test.yml run --rm test-e2e
+	docker compose -f docker-compose.test.yml down -v
 
 .PHONY: docker-test-all
 docker-test-all: ## Run complete test suite in Docker
-	docker-compose -f docker-compose.test.yml up --build -d spanner-test
+	docker compose -f docker-compose.test.yml up --build -d spanner-test
 	@echo "Waiting for Spanner emulator..."
 	@sleep 5
-	docker-compose -f docker-compose.test.yml run --rm test-all
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose -f docker-compose.test.yml run --rm test-all
+	docker compose -f docker-compose.test.yml down -v
 
 .PHONY: docker-test-coverage
 docker-test-coverage: ## Generate coverage report in Docker
 	mkdir -p coverage-reports
-	docker-compose -f docker-compose.test.yml up -d spanner-test
+	docker compose -f docker-compose.test.yml up -d spanner-test
 	@echo "Waiting for Spanner emulator..."
 	@sleep 5
-	docker-compose -f docker-compose.test.yml run --rm test-coverage
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose -f docker-compose.test.yml run --rm test-coverage
+	docker compose -f docker-compose.test.yml down -v
 	@echo ""
 	@echo "Coverage report generated:"
 	@echo "  - coverage-reports/coverage.out (raw)"
@@ -162,7 +162,7 @@ docker-test-coverage: ## Generate coverage report in Docker
 
 .PHONY: docker-test-watch
 docker-test-watch: ## Watch and re-run unit tests in Docker on file changes
-	docker-compose -f docker-compose.test.yml run --rm test-unit
+	docker compose -f docker-compose.test.yml run --rm test-unit
 	@echo "Note: For true watch mode, use 'make test-watch' on host"
 
 # ==================================================================================== #
@@ -208,8 +208,8 @@ check: fmt vet lint ## Run all code quality checks
 clean: ## Clean build artifacts and test data
 	rm -rf bin/
 	rm -f coverage.out coverage.html
-	docker-compose down -v
-	docker-compose -f docker-compose.test.yml down -v
+	docker compose down -v
+	docker compose -f docker-compose.test.yml down -v
 
 .PHONY: clean-all
 clean-all: clean ## Deep clean including Go cache
