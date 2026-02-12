@@ -9,9 +9,9 @@ A production-ready Go microservice for product catalog management with dynamic p
 
 ## Documentation
 
-- **[USAGE.md](USAGE.md)** - Complete API usage guide with examples
-- **[DESIGN.md](DESIGN.md)** - Architecture, patterns, and design decisions
-- **[CI/CD Configuration](.github/README.md)** - GitHub Actions setup and troubleshooting
+- **[USAGE.md](docs/USAGE.md)** - Complete API usage guide with examples
+- **[DESIGN.md](docs/DESIGN.md)** - Architecture, patterns, and design decisions
+- **[CI/CD Configuration](docs/CICD.md)** - GitHub Actions setup and troubleshooting
 
 ## Table of Contents
 
