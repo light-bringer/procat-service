@@ -16,6 +16,7 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/remove_discount"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_price"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/internal/pkg/committer"
@@ -43,12 +44,15 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 	// 3. Create repositories
 	productRepo := repo.NewProductRepo(spannerClient, clk)
 	outboxRepo := repo.NewOutboxRepo(spannerClient)
+	priceHistoryRepo := repo.NewPriceHistoryRepo(spannerClient)
 	readModel := repo.NewReadModel(spannerClient, clk)
 	eventsReadModel := repo.NewEventsReadModel(spannerClient)
 
 	// 4. Create command use cases (write operations)
-	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, comm, clk)
+	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	updateProductUseCase := update_product.NewInteractor(productRepo, outboxRepo, comm, clk)
+	// TODO: Wire up updatePriceUseCase when gRPC endpoint is added
+	_ = update_price.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	activateProductUseCase := activate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	deactivateProductUseCase := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	applyDiscountUseCase := apply_discount.NewInteractor(productRepo, outboxRepo, comm, clk)
