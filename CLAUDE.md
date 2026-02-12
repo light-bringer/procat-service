@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Product Catalog Service - A Go microservice implementing product management and pricing using Domain-Driven Design (DDD), Clean Architecture, and the Golden Mutation Pattern with Google Cloud Spanner.
 
-**Tech Stack**: Go 1.25+, gRPC, Google Cloud Spanner, github.com/Vektor-AI/commitplan
+**Tech Stack**: Go 1.25+, gRPC, Google Cloud Spanner, custom CommitPlan implementation
 
 ## Development Commands
 
@@ -309,3 +309,32 @@ func (h *ProductHandler) CreateProduct(ctx context.Context, req *pb.CreateProduc
 - **Error handling**: Domain errors are sentinel values; map them to gRPC status codes in handlers
 - **Optimistic locking**: Use version fields or timestamps if implementing concurrent update protection
 - **No over-engineering**: Don't add auth, background processors, actual Pub/Sub, or monitoring beyond basic logging
+
+## Architectural Deviations
+
+### CommitPlan Implementation
+
+**Original Requirement**: Use `github.com/Vektor-AI/commitplan` library for transaction management.
+
+**Actual Implementation**: Custom implementation at `internal/pkg/committer/plan.go`.
+
+**Reason**: The `github.com/Vektor-AI/commitplan` repository does not exist or is not publicly accessible. Attempts to install the library result in "Repository not found" errors.
+
+**Feature Parity**: The custom implementation provides equivalent functionality:
+- ✅ Mutation collection via `NewPlan()` and `Add()` methods
+- ✅ Atomic transaction application via `Apply(ctx, plan)`
+- ✅ Nil-safe mutation handling
+- ✅ Read-write transaction support via `ApplyWithReadWriteTransaction()`
+- ✅ Empty plan detection via `IsEmpty()`
+
+**Risk Assessment**: The custom implementation is sufficient for current requirements. However, if the official library becomes available in the future, consider migrating to benefit from:
+- Community support and bug fixes
+- Performance optimizations
+- Additional features (e.g., transaction retries, advanced batching)
+
+**Migration Path**: If switching to the official library:
+1. Install `github.com/Vektor-AI/commitplan` and `github.com/Vektor-AI/commitplan/drivers/spanner`
+2. Replace imports in all usecases (7 files)
+3. Update DI container initialization in `internal/services/options.go`
+4. Run full test suite to verify compatibility
+5. Remove `internal/pkg/committer/plan.go` if no longer needed
