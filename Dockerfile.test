@@ -1,0 +1,16 @@
+FROM golang:1.25-alpine
+
+RUN apk add --no-cache make git curl
+
+WORKDIR /app
+
+# Cache dependencies layer
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Install test tools
+RUN go install github.com/google/go-cloud/cmd/spanner-cli@latest
+
+CMD ["make", "test-all"]

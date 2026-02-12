@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  spanner-test:
+    image: gcr.io/cloud-spanner-emulator/emulator:latest
+    ports:
+      - "19010:9010"  # Different ports to avoid conflicts with dev
+      - "19020:9020"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9020"]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    environment:
+      - SPANNER_EMULATOR_HOST=localhost:9010
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      spanner-test:
+        condition: service_healthy
+    environment:
+      - SPANNER_EMULATOR_HOST=spanner-test:9010
+      - TEST_DB_INSTANCE=test-instance
+      - TEST_DB_NAME=test-db
+    volumes:
+      - .:/app
+      - /app/vendor  # Cache dependencies
+    command: make test-all
