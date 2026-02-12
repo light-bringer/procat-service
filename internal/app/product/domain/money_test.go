@@ -2,6 +2,7 @@ package domain
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -159,5 +160,217 @@ func TestMoney_Normalize(t *testing.T) {
 		assert.True(t, normalized1.Equals(normalized2))
 		assert.Equal(t, normalized1.Numerator(), normalized2.Numerator())
 		assert.Equal(t, normalized1.Denominator(), normalized2.Denominator())
+	})
+}
+
+func TestMoney_EdgeCases(t *testing.T) {
+	t.Run("very large price - near MaxInt64", func(t *testing.T) {
+		// MaxInt64 = 9223372036854775807
+		// Test with a very large but safe value
+		largePrice, err := NewMoney(9223372036854775807, 100)
+		require.NoError(t, err)
+
+		// Verify it can be stored and retrieved
+		num := largePrice.Numerator()
+		denom := largePrice.Denominator()
+		assert.Equal(t, int64(9223372036854775807), num)
+		assert.Equal(t, int64(100), denom)
+
+		// Verify it can be normalized
+		normalized := largePrice.Normalize()
+		assert.NotNil(t, normalized)
+	})
+
+	t.Run("very small price - fractional cents", func(t *testing.T) {
+		// $0.01
+		smallPrice, err := NewMoney(1, 100)
+		require.NoError(t, err)
+
+		val, _ := smallPrice.Float64()
+		assert.Equal(t, 0.01, val)
+
+		// Even smaller - $0.001
+		tinyPrice, err := NewMoney(1, 1000)
+		require.NoError(t, err)
+
+		val, _ = tinyPrice.Float64()
+		assert.InDelta(t, 0.001, val, 0.0001)
+	})
+
+	t.Run("fractional cent handling", func(t *testing.T) {
+		// $10.001 - fractional cent
+		price, err := NewMoney(10001, 1000)
+		require.NoError(t, err)
+
+		val, _ := price.Float64()
+		assert.InDelta(t, 10.001, val, 0.00001)
+
+		// Operations should preserve precision
+		price2, _ := NewMoney(5000, 1000)
+		result := price.Add(price2)
+
+		resultVal, _ := result.Float64()
+		assert.InDelta(t, 15.001, resultVal, 0.00001)
+	})
+
+	t.Run("multiple operations preserve precision", func(t *testing.T) {
+		// Start with $100.00
+		price, _ := NewMoney(10000, 100)
+
+		// Apply 20% discount
+		discount, _ := NewMoney(20, 100)
+		discountAmount := price.MultiplyByRat(discount.rat)
+		afterDiscount := price.Subtract(discountAmount)
+
+		// Result should be $80.00
+		val, _ := afterDiscount.Float64()
+		assert.Equal(t, 80.0, val)
+
+		// Apply another 10% discount
+		discount2, _ := NewMoney(10, 100)
+		discountAmount2 := afterDiscount.MultiplyByRat(discount2.rat)
+		final := afterDiscount.Subtract(discountAmount2)
+
+		// Result should be $72.00 (80 - 8)
+		finalVal, _ := final.Float64()
+		assert.Equal(t, 72.0, finalVal)
+	})
+
+	t.Run("Float64 precision indicator", func(t *testing.T) {
+		// Exact representation
+		exactPrice, _ := NewMoney(100, 1)
+		val, exact := exactPrice.Float64()
+		assert.Equal(t, 100.0, val)
+		assert.True(t, exact, "100/1 should have exact float representation")
+
+		// Non-exact representation (repeating decimal)
+		nonExactPrice, _ := NewMoney(1, 3)
+		val, exact = nonExactPrice.Float64()
+		assert.InDelta(t, 0.333333, val, 0.00001)
+		assert.False(t, exact, "1/3 should not have exact float representation")
+	})
+
+	t.Run("zero value operations", func(t *testing.T) {
+		zero, _ := NewMoney(0, 1)
+		price, _ := NewMoney(100, 1)
+
+		// Adding zero
+		result := price.Add(zero)
+		assert.True(t, result.Equals(price))
+
+		// Subtracting zero
+		result = price.Subtract(zero)
+		assert.True(t, result.Equals(price))
+
+		// Multiplying by zero
+		result = price.Multiply(zero)
+		assert.True(t, result.IsZero())
+	})
+
+	t.Run("comparison edge cases", func(t *testing.T) {
+		// Very close but different values
+		price1, _ := NewMoney(10000, 100) // 100.00
+		price2, _ := NewMoney(10001, 100) // 100.01
+
+		assert.True(t, price2.GreaterThan(price1))
+		assert.True(t, price1.LessThan(price2))
+		assert.False(t, price1.Equals(price2))
+
+		// Same value, different representations
+		price3, _ := NewMoney(100, 1)
+		price4, _ := NewMoney(200, 2)
+		assert.True(t, price3.Equals(price4))
+	})
+
+	t.Run("copy independence", func(t *testing.T) {
+		original, _ := NewMoney(100, 1)
+		copied := original.Copy()
+
+		// Verify they're equal
+		assert.True(t, original.Equals(copied))
+
+		// Modify copy
+		newPrice, _ := NewMoney(50, 1)
+		modified := copied.Add(newPrice)
+
+		// Original should be unchanged
+		origVal, _ := original.Float64()
+		assert.Equal(t, 100.0, origVal)
+
+		// Modified should be different
+		modVal, _ := modified.Float64()
+		assert.Equal(t, 150.0, modVal)
+	})
+}
+
+func TestDiscount_EdgeCases(t *testing.T) {
+	now := time.Now().UTC()
+
+	t.Run("zero percent discount returns original price", func(t *testing.T) {
+		discount, err := NewDiscount(0, now, now.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		price, _ := NewMoney(10000, 100) // $100.00
+		discounted := discount.Apply(price)
+
+		val, _ := discounted.Float64()
+		assert.Equal(t, 100.0, val)
+	})
+
+	t.Run("100 percent discount returns zero price", func(t *testing.T) {
+		discount, err := NewDiscount(100, now, now.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		price, _ := NewMoney(10000, 100) // $100.00
+		discounted := discount.Apply(price)
+
+		assert.True(t, discounted.IsZero())
+		val, _ := discounted.Float64()
+		assert.Equal(t, 0.0, val)
+	})
+
+	t.Run("discount on very small price", func(t *testing.T) {
+		discount, err := NewDiscount(50, now, now.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		// $0.02
+		tinyPrice, _ := NewMoney(2, 100)
+		discounted := discount.Apply(tinyPrice)
+
+		val, _ := discounted.Float64()
+		assert.Equal(t, 0.01, val) // 50% of $0.02 = $0.01
+	})
+
+	t.Run("discount precision with fractional results", func(t *testing.T) {
+		// 33% discount
+		discount, err := NewDiscount(33, now, now.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		price, _ := NewMoney(10000, 100) // $100.00
+		discounted := discount.Apply(price)
+
+		// $100 * 0.67 = $67.00
+		val, _ := discounted.Float64()
+		assert.InDelta(t, 67.0, val, 0.01)
+	})
+
+	t.Run("multiple discount applications", func(t *testing.T) {
+		discount1, err := NewDiscount(20, now, now.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		discount2, err := NewDiscount(10, now, now.Add(24*time.Hour))
+		require.NoError(t, err)
+
+		price, _ := NewMoney(10000, 100) // $100.00
+
+		// Apply 20% discount: $100 * 0.80 = $80
+		afterFirst := discount1.Apply(price)
+		val1, _ := afterFirst.Float64()
+		assert.Equal(t, 80.0, val1)
+
+		// Apply 10% discount to $80: $80 * 0.90 = $72
+		afterSecond := discount2.Apply(afterFirst)
+		val2, _ := afterSecond.Float64()
+		assert.Equal(t, 72.0, val2)
 	})
 }
