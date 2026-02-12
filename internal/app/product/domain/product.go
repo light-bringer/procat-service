@@ -331,6 +331,18 @@ func (p *Product) Archive(now time.Time) error {
 		return ErrAlreadyArchived
 	}
 
+	// Remove any active discount when archiving
+	// Archived products should not have active discounts
+	hadDiscount := p.discount != nil
+	if hadDiscount {
+		p.discount = nil
+		p.changes.MarkDirty(FieldDiscount)
+		p.recordEvent(&DiscountRemovedEvent{
+			ProductID: p.id,
+			RemovedAt: now,
+		})
+	}
+
 	p.status = StatusArchived
 	p.archivedAt = &now
 	p.changes.MarkDirty(FieldStatus)

@@ -230,3 +230,62 @@ func TestProduct_DiscountCopy(t *testing.T) {
 		assert.Equal(t, int64(20), copy.Percentage())
 	})
 }
+
+func TestProduct_Archive_RemovesDiscount(t *testing.T) {
+	price, _ := NewMoney(100, 1)
+	now := time.Now().UTC()
+	clk := clock.NewMockClock(now)
+
+	t.Run("archiving product with discount removes it", func(t *testing.T) {
+		p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
+		p.Activate(now)
+
+		// Apply discount
+		discount, _ := NewDiscount(20, now, now.Add(24*time.Hour))
+		p.ApplyDiscount(discount, now)
+		require.True(t, p.HasDiscount())
+
+		// Archive product
+		err := p.Archive(now)
+		require.NoError(t, err)
+
+		// Verify discount was removed
+		assert.False(t, p.HasDiscount())
+		assert.Nil(t, p.DiscountCopy())
+		assert.Equal(t, StatusArchived, p.Status())
+
+		// Verify DiscountRemovedEvent and ProductArchivedEvent were emitted
+		events := p.DomainEvents()
+		var hasDiscountRemoved, hasArchived bool
+		for _, event := range events {
+			switch event.EventType() {
+			case "product.discount.removed":
+				hasDiscountRemoved = true
+			case "product.archived":
+				hasArchived = true
+			}
+		}
+		assert.True(t, hasDiscountRemoved, "DiscountRemovedEvent should be emitted")
+		assert.True(t, hasArchived, "ProductArchivedEvent should be emitted")
+	})
+
+	t.Run("archiving product without discount works normally", func(t *testing.T) {
+		p, _ := NewProduct("id-2", "Test Product", "Description", "electronics", price, now, clk)
+
+		err := p.Archive(now)
+		require.NoError(t, err)
+
+		assert.False(t, p.HasDiscount())
+		assert.Equal(t, StatusArchived, p.Status())
+
+		// Verify only ProductArchivedEvent was emitted (no DiscountRemovedEvent)
+		events := p.DomainEvents()
+		var hasDiscountRemoved bool
+		for _, event := range events {
+			if event.EventType() == "product.discount.removed" {
+				hasDiscountRemoved = true
+			}
+		}
+		assert.False(t, hasDiscountRemoved, "DiscountRemovedEvent should not be emitted when no discount exists")
+	})
+}
