@@ -17,6 +17,9 @@ func NewMoney(numerator, denominator int64) (*Money, error) {
 	if denominator == 0 {
 		return nil, fmt.Errorf("denominator cannot be zero")
 	}
+	if denominator < 0 {
+		return nil, fmt.Errorf("denominator must be positive, got %d", denominator)
+	}
 
 	rat := big.NewRat(numerator, denominator)
 	return &Money{rat: rat}, nil

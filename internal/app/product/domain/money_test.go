@@ -20,7 +20,13 @@ func TestNewMoney(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("negative values allowed", func(t *testing.T) {
+	t.Run("negative denominator returns error", func(t *testing.T) {
+		_, err := NewMoney(100, -1)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "positive")
+	})
+
+	t.Run("negative numerator allowed", func(t *testing.T) {
 		m, err := NewMoney(-100, 1)
 		require.NoError(t, err)
 		assert.True(t, m.IsNegative())
