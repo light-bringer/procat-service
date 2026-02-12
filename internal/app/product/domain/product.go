@@ -161,11 +161,12 @@ func (p *Product) DiscountCopy() *Discount {
 	if p.discount == nil {
 		return nil
 	}
-	// Create a shallow copy (all Discount fields are value types)
+	// Create a copy including the cached multiplier
 	return &Discount{
-		percentage: p.discount.percentage,
-		startDate:  p.discount.startDate,
-		endDate:    p.discount.endDate,
+		percentage:         p.discount.percentage,
+		startDate:          p.discount.startDate,
+		endDate:            p.discount.endDate,
+		discountMultiplier: p.discount.discountMultiplier, // Share the cached multiplier (immutable)
 	}
 }
 
