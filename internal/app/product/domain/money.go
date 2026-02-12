@@ -126,3 +126,10 @@ func (m *Money) String() string {
 func (m *Money) Copy() *Money {
 	return &Money{rat: new(big.Rat).Set(m.rat)}
 }
+
+// Normalize returns a new Money with the fraction reduced to lowest terms.
+// This ensures consistent storage: 200/2 becomes 100/1.
+// big.Rat automatically normalizes, so we just create a new instance.
+func (m *Money) Normalize() *Money {
+	return &Money{rat: new(big.Rat).Set(m.rat)}
+}

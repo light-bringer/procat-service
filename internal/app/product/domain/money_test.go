@@ -106,3 +106,58 @@ func TestMoney_Precision(t *testing.T) {
 	// 2499.00 - (2499.00 * 0.20) = 2499.00 - 499.80 = 1999.20
 	assert.Equal(t, "1999.20", finalPrice.String())
 }
+
+func TestMoney_Normalize(t *testing.T) {
+	t.Run("reduces fraction to lowest terms", func(t *testing.T) {
+		// 200/2 should normalize to 100/1
+		m, _ := NewMoney(200, 2)
+		normalized := m.Normalize()
+		assert.Equal(t, int64(100), normalized.Numerator())
+		assert.Equal(t, int64(1), normalized.Denominator())
+	})
+
+	t.Run("normalizes complex fraction", func(t *testing.T) {
+		// 300/6 should normalize to 50/1
+		m, _ := NewMoney(300, 6)
+		normalized := m.Normalize()
+		assert.Equal(t, int64(50), normalized.Numerator())
+		assert.Equal(t, int64(1), normalized.Denominator())
+	})
+
+	t.Run("already normalized value unchanged", func(t *testing.T) {
+		// 100/1 should stay 100/1
+		m, _ := NewMoney(100, 1)
+		normalized := m.Normalize()
+		assert.Equal(t, int64(100), normalized.Numerator())
+		assert.Equal(t, int64(1), normalized.Denominator())
+	})
+
+	t.Run("normalizes negative numerator correctly", func(t *testing.T) {
+		// -200/2 should normalize to -100/1
+		m, _ := NewMoney(-200, 2)
+		normalized := m.Normalize()
+		assert.Equal(t, int64(-100), normalized.Numerator())
+		assert.Equal(t, int64(1), normalized.Denominator())
+	})
+
+	t.Run("normalizes fractional prices", func(t *testing.T) {
+		// 249900/100 should normalize to 2499/1
+		m, _ := NewMoney(249900, 100)
+		normalized := m.Normalize()
+		assert.Equal(t, int64(2499), normalized.Numerator())
+		assert.Equal(t, int64(1), normalized.Denominator())
+	})
+
+	t.Run("preserves value equality after normalization", func(t *testing.T) {
+		// Different representations of the same value should equal after normalization
+		m1, _ := NewMoney(200, 2)    // 100
+		m2, _ := NewMoney(400, 4)    // 100
+
+		normalized1 := m1.Normalize()
+		normalized2 := m2.Normalize()
+
+		assert.True(t, normalized1.Equals(normalized2))
+		assert.Equal(t, normalized1.Numerator(), normalized2.Numerator())
+		assert.Equal(t, normalized1.Denominator(), normalized2.Denominator())
+	})
+}

@@ -148,13 +148,16 @@ func (r *ProductRepo) Exists(ctx context.Context, productID string) (bool, error
 
 // domainToData converts a domain Product to database Data.
 func (r *ProductRepo) domainToData(product *domain.Product) *m_product.Data {
+	// Normalize price to ensure consistent storage (200/2 → 100/1)
+	normalizedPrice := product.BasePrice().Normalize()
+
 	data := &m_product.Data{
 		ProductID:            product.ID(),
 		Name:                 product.Name(),
 		Description:          product.Description(),
 		Category:             product.Category(),
-		BasePriceNumerator:   product.BasePrice().Numerator(),
-		BasePriceDenominator: product.BasePrice().Denominator(),
+		BasePriceNumerator:   normalizedPrice.Numerator(),
+		BasePriceDenominator: normalizedPrice.Denominator(),
 		Status:               string(product.Status()),
 		Version:              product.Version(),
 		CreatedAt:            product.CreatedAt(),
