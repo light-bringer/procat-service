@@ -22,13 +22,12 @@ func TestProductRepository_InsertMut(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	clk := clock.NewRealClock()
+	now := time.Now()
+	clk := clock.NewMockClock(now)
 	repository := repo.NewProductRepo(client, clk)
 
 	// Create a new product
 	price, _ := domain.NewMoney(10000, 100) // $100.00
-	now := time.Now()
-	clk := clock.NewMockClock(now)
 	product, err := domain.NewProduct("test-id-1", "Test Product", "Description", "electronics", price, now, clk)
 	require.NoError(t, err)
 
@@ -55,13 +54,12 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	clk := clock.NewRealClock()
+	now := time.Now()
+	clk := clock.NewMockClock(now)
 	repository := repo.NewProductRepo(client, clk)
 
 	// Create and insert a product
 	price, _ := domain.NewMoney(10000, 100)
-	now := time.Now()
-	clk := clock.NewMockClock(now)
 	product, _ := domain.NewProduct("test-id-2", "Original Name", "Description", "electronics", price, now, clk)
 
 	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
@@ -97,13 +95,12 @@ func TestProductRepository_UpdateMut_OnlyDirtyFields(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	clk := clock.NewRealClock()
+	now := time.Now()
+	clk := clock.NewMockClock(now)
 	repository := repo.NewProductRepo(client, clk)
 
 	// Create a product
 	price, _ := domain.NewMoney(10000, 100)
-	now := time.Now()
-	clk := clock.NewMockClock(now)
 	product, _ := domain.NewProduct("test-id-3", "Test", "Desc", "electronics", price, now, clk)
 	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
 	require.NoError(t, err)

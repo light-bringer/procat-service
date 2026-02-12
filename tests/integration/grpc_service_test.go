@@ -51,10 +51,11 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 	// Create repositories
 	productRepo := repo.NewProductRepo(client, clk)
 	outboxRepo := repo.NewOutboxRepo(client)
+	priceHistoryRepo := repo.NewPriceHistoryRepo(client)
 	readModel := repo.NewReadModel(client, clk)
 
 	// Create use cases
-	createProductUC := create_product.NewInteractor(productRepo, outboxRepo, comm, clk)
+	createProductUC := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	updateProductUC := update_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	activateProductUC := activate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	deactivateProductUC := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
