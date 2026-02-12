@@ -51,6 +51,9 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		return err
 	}
 
+	// Clear events on function exit to prevent duplicates on retry
+	defer product.ClearEvents()
+
 	// 2. Create discount value object
 	discount, err := domain.NewDiscount(req.DiscountPercent, req.StartDate, req.EndDate)
 	if err != nil {

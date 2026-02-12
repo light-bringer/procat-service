@@ -50,6 +50,9 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		return err
 	}
 
+	// Clear events on function exit to prevent duplicates on retry
+	defer product.ClearEvents()
+
 	// 2. Call domain methods
 	if req.Name != nil {
 		if err := product.SetName(*req.Name); err != nil {

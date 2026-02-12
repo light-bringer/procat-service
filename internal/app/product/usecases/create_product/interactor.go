@@ -68,6 +68,9 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 		return "", fmt.Errorf("failed to create product: %w", err)
 	}
 
+	// Clear events on function exit (success or failure) to prevent duplicates on retry
+	defer product.ClearEvents()
+
 	// 3. Create commit plan
 	plan := committer.NewPlan()
 

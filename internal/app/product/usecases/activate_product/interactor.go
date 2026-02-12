@@ -47,6 +47,9 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		return err
 	}
 
+	// Clear events on function exit to prevent duplicates on retry
+	defer product.ClearEvents()
+
 	// 2. Call domain method
 	now := i.clock.Now()
 	if err := product.Activate(now); err != nil {
