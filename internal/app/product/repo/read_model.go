@@ -198,13 +198,14 @@ func (rm *ReadModelImpl) dataToDTO(data *m_product.Data, now time.Time) (*contra
 		return nil, fmt.Errorf("invalid base price: %w", err)
 	}
 
+	basePriceFloat, _ := basePrice.Float64()
 	dto := &contracts.ProductDTO{
 		ProductID:      data.ProductID,
 		Name:           data.Name,
 		Description:    data.Description,
 		Category:       data.Category,
-		BasePrice:      basePrice.Float64(),
-		EffectivePrice: basePrice.Float64(),
+		BasePrice:      basePriceFloat,
+		EffectivePrice: basePriceFloat,
 		Status:         data.Status,
 		CreatedAt:      data.CreatedAt,
 		UpdatedAt:      data.UpdatedAt,
@@ -221,7 +222,8 @@ func (rm *ReadModelImpl) dataToDTO(data *m_product.Data, now time.Time) (*contra
 			dto.DiscountPercent = &data.DiscountPercent.Int64
 			dto.DiscountActive = true
 			effectivePrice := discount.Apply(basePrice)
-			dto.EffectivePrice = effectivePrice.Float64()
+			effectivePriceFloat, _ := effectivePrice.Float64()
+			dto.EffectivePrice = effectivePriceFloat
 		}
 	}
 

@@ -32,7 +32,8 @@ func TestMoney_Add(t *testing.T) {
 	m2, _ := NewMoney(50, 1)  // 50
 
 	result := m1.Add(m2)
-	assert.Equal(t, 150.0, result.Float64())
+	val, _ := result.Float64()
+	assert.Equal(t, 150.0, val)
 }
 
 func TestMoney_Subtract(t *testing.T) {
@@ -40,7 +41,8 @@ func TestMoney_Subtract(t *testing.T) {
 	m2, _ := NewMoney(30, 1)  // 30
 
 	result := m1.Subtract(m2)
-	assert.Equal(t, 70.0, result.Float64())
+	val, _ := result.Float64()
+	assert.Equal(t, 70.0, val)
 }
 
 func TestMoney_Multiply(t *testing.T) {
@@ -48,7 +50,8 @@ func TestMoney_Multiply(t *testing.T) {
 	m2, _ := NewMoney(3, 2)    // 1.5
 
 	result := m1.Multiply(m2)
-	assert.Equal(t, 150.0, result.Float64())
+	val, _ := result.Float64()
+	assert.Equal(t, 150.0, val)
 }
 
 func TestMoney_Divide(t *testing.T) {
@@ -58,7 +61,8 @@ func TestMoney_Divide(t *testing.T) {
 
 		result, err := m1.Divide(m2)
 		require.NoError(t, err)
-		assert.Equal(t, 50.0, result.Float64())
+		val, _ := result.Float64()
+		assert.Equal(t, 50.0, val)
 	})
 
 	t.Run("division by zero returns error", func(t *testing.T) {

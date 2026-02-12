@@ -103,10 +103,15 @@ func (m *Money) Equals(other *Money) bool {
 	return m.rat.Cmp(other.rat) == 0
 }
 
-// Float64 returns an approximate float64 representation (for display only, not calculations).
-func (m *Money) Float64() float64 {
-	f, _ := m.rat.Float64()
-	return f
+// Float64 returns an approximate float64 representation. The second return value indicates
+// if the conversion is exact (true) or lossy (false). This is for display purposes only.
+// NEVER use for calculations - use the rational number operations instead.
+//
+// Example:
+//   m := NewMoney(100, 3)  // 33.333...
+//   f, exact := m.Float64()  // f ≈ 33.333..., exact = false (repeating decimal)
+func (m *Money) Float64() (float64, bool) {
+	return m.rat.Float64()
 }
 
 // String returns a string representation of the money value.

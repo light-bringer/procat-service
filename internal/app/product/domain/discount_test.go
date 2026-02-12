@@ -73,5 +73,6 @@ func TestDiscount_Apply(t *testing.T) {
 	discountedPrice := discount.Apply(price)
 
 	// $100 - ($100 * 20%) = $100 - $20 = $80
-	assert.Equal(t, 80.0, discountedPrice.Float64())
+	val, _ := discountedPrice.Float64()
+	assert.Equal(t, 80.0, val)
 }

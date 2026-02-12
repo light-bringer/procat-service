@@ -165,7 +165,8 @@ func TestProductRepository_ReconstructProductWithDiscount(t *testing.T) {
 	// Verify effective price calculation
 	now := time.Now()
 	effectivePrice := product.CalculateEffectivePrice(now)
-	assert.Equal(t, 80.0, effectivePrice.Float64(), "20% discount on $100 should be $80")
+	price, _ := effectivePrice.Float64()
+	assert.Equal(t, 80.0, price, "20% discount on $100 should be $80")
 }
 
 func TestProductRepository_Exists(t *testing.T) {

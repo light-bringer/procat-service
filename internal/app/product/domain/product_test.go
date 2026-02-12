@@ -112,7 +112,8 @@ func TestProduct_CalculateEffectivePrice(t *testing.T) {
 
 	t.Run("without discount returns base price", func(t *testing.T) {
 		effectivePrice := p.CalculateEffectivePrice(now)
-		assert.Equal(t, 100.0, effectivePrice.Float64())
+		val, _ := effectivePrice.Float64()
+		assert.Equal(t, 100.0, val)
 	})
 
 	t.Run("with active discount returns discounted price", func(t *testing.T) {
@@ -123,13 +124,15 @@ func TestProduct_CalculateEffectivePrice(t *testing.T) {
 		p.ApplyDiscount(discount, now)
 
 		effectivePrice := p.CalculateEffectivePrice(now)
-		assert.Equal(t, 80.0, effectivePrice.Float64()) // 100 - 20%
+		val, _ := effectivePrice.Float64()
+		assert.Equal(t, 80.0, val) // 100 - 20%
 	})
 
 	t.Run("with expired discount returns base price", func(t *testing.T) {
 		futureTime := now.Add(2 * time.Hour)
 		effectivePrice := p.CalculateEffectivePrice(futureTime)
-		assert.Equal(t, 100.0, effectivePrice.Float64())
+		val, _ := effectivePrice.Float64()
+		assert.Equal(t, 100.0, val)
 	})
 }
 
