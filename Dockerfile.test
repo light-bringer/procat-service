@@ -23,7 +23,8 @@ RUN apk add --no-cache python3 py3-pip && \
 ENV PATH="/app/google-cloud-sdk/bin:${PATH}"
 
 # Install Go test tools
-RUN go install github.com/google/go-cloud/cmd/spanner-cli@latest
+RUN go install github.com/google/go-cloud/cmd/spanner-cli@latest && \
+    go install gotest.tools/gotestsum@latest
 
 # Copy go mod files for dependency caching
 COPY go.mod go.sum ./

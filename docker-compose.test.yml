@@ -26,7 +26,7 @@ services:
       - .:/app
       - go-cache:/go/pkg/mod
     working_dir: /app
-    command: ["go", "test", "-v", "-race", "-count=1", "./internal/app/product/domain/..."]
+    command: ["gotestsum", "--format", "testname", "--", "-race", "-count=1", "./internal/app/product/domain/..."]
     networks:
       - test-network
 
@@ -47,13 +47,15 @@ services:
     volumes:
       - .:/app
       - go-cache:/go/pkg/mod
+      - ./test-results:/app/test-results
     working_dir: /app
     command: >
       sh -c "
         echo 'Setting up test database...' &&
         ./scripts/setup_test_db.sh &&
-        echo 'Running integration tests...' &&
-        go test -v -race -count=1 -tags=integration ./tests/integration/...
+        echo 'Running integration tests with gotestsum...' &&
+        mkdir -p test-results &&
+        gotestsum --format testname --junitfile test-results/integration-junit.xml -- -race -count=1 -tags=integration ./tests/integration/...
       "
     networks:
       - test-network
@@ -75,18 +77,20 @@ services:
     volumes:
       - .:/app
       - go-cache:/go/pkg/mod
+      - ./test-results:/app/test-results
     working_dir: /app
     command: >
       sh -c "
         echo 'Setting up test database...' &&
         ./scripts/setup_test_db.sh &&
-        echo 'Running E2E tests...' &&
-        go test -v -race -count=1 -timeout=5m ./tests/e2e/...
+        echo 'Running E2E tests with gotestsum...' &&
+        mkdir -p test-results &&
+        gotestsum --format testname --junitfile test-results/e2e-junit.xml -- -race -count=1 -timeout=5m ./tests/e2e/...
       "
     networks:
       - test-network
 
-  # All tests runner (comprehensive suite)
+  # All tests runner (comprehensive suite with gotestsum)
   test-all:
     build:
       context: .
@@ -103,29 +107,31 @@ services:
     volumes:
       - .:/app
       - go-cache:/go/pkg/mod
-      - ./coverage-reports:/app/coverage-reports
+      - ./test-results:/app/test-results
     working_dir: /app
     command: >
       sh -c "
+        mkdir -p test-results &&
         echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' &&
         echo 'Product Catalog Service - Test Suite' &&
         echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' &&
         echo '' &&
         echo '1. Running Unit Tests...' &&
-        go test -v -race -count=1 ./internal/app/product/domain/... &&
+        gotestsum --format testname --junitfile test-results/unit-junit.xml -- -race -count=1 ./internal/app/product/domain/... &&
         echo '' &&
         echo '2. Setting up test database...' &&
         ./scripts/setup_test_db.sh &&
         echo '' &&
         echo '3. Running Integration Tests...' &&
-        go test -v -race -count=1 -tags=integration ./tests/integration/... &&
+        gotestsum --format testname --junitfile test-results/integration-junit.xml -- -race -count=1 -tags=integration ./tests/integration/... &&
         echo '' &&
         echo '4. Running E2E Tests...' &&
-        go test -v -race -count=1 -timeout=5m ./tests/e2e/... &&
+        gotestsum --format testname --junitfile test-results/e2e-junit.xml -- -race -count=1 -timeout=5m ./tests/e2e/... &&
         echo '' &&
         echo '5. Generating Coverage Report...' &&
-        go test -coverprofile=coverage-reports/coverage.out -covermode=atomic ./... &&
-        go tool cover -func=coverage-reports/coverage.out | tail -1 &&
+        gotestsum --format testname -- -coverprofile=test-results/coverage.out -covermode=atomic ./... &&
+        go tool cover -html=test-results/coverage.out -o test-results/coverage.html &&
+        go tool cover -func=test-results/coverage.out | tail -1 &&
         echo '' &&
         echo '✓ All tests completed successfully!'
       "

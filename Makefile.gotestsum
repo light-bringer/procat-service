@@ -1,0 +1,72 @@
+# Makefile with gotestsum for enhanced test reporting
+# Include this after installing gotestsum: make tools
+
+# ==================================================================================== #
+# ENHANCED TEST TARGETS WITH GOTESTSUM
+# ==================================================================================== #
+
+.PHONY: test-unit-pretty
+test-unit-pretty: ## Run unit tests with pretty output (requires gotestsum)
+	gotestsum --format testname -- -race -count=1 ./internal/app/product/domain/...
+
+.PHONY: test-unit-detailed
+test-unit-detailed: ## Run unit tests with detailed output
+	gotestsum --format standard-verbose -- -race -count=1 ./internal/app/product/domain/...
+
+.PHONY: test-integration-pretty
+test-integration-pretty: docker-test-up migrate-test ## Run integration tests with pretty output
+	SPANNER_EMULATOR_HOST=localhost:19010 \
+	gotestsum --format testname -- -race -count=1 -tags=integration ./tests/integration/...
+	$(MAKE) docker-test-down
+
+.PHONY: test-e2e-pretty
+test-e2e-pretty: docker-test-up migrate-test ## Run E2E tests with pretty output
+	SPANNER_EMULATOR_HOST=localhost:19010 \
+	gotestsum --format testname -- -race -count=1 -timeout=5m ./tests/e2e/...
+	$(MAKE) docker-test-down
+
+.PHONY: test-all-pretty
+test-all-pretty: ## Run all tests with pretty output
+	@echo "Running Unit Tests..."
+	gotestsum --format testname -- -race -count=1 ./internal/app/product/domain/...
+	@echo ""
+	@echo "Running Integration Tests..."
+	$(MAKE) test-integration-pretty
+	@echo ""
+	@echo "Running E2E Tests..."
+	$(MAKE) test-e2e-pretty
+
+.PHONY: test-json
+test-json: ## Run tests and output JSON for CI tools
+	mkdir -p test-results
+	gotestsum --format standard-verbose --jsonfile test-results/tests.json -- -race -count=1 ./...
+
+.PHONY: test-junit
+test-junit: ## Run tests and generate JUnit XML report
+	mkdir -p test-results
+	gotestsum --junitfile test-results/junit.xml --format testname -- -race -count=1 ./...
+
+.PHONY: test-summary
+test-summary: ## Run all tests with summary report
+	gotestsum --format pkgname -- -race -count=1 ./...
+
+.PHONY: test-dots
+test-dots: ## Run tests with dots progress indicator
+	gotestsum --format dots -- -race -count=1 ./...
+
+.PHONY: test-ci
+test-ci: docker-test-up migrate-test ## Run all tests with CI-friendly output
+	@mkdir -p test-results
+	@echo "Running complete test suite with gotestsum..."
+	SPANNER_EMULATOR_HOST=localhost:19010 \
+	gotestsum --junitfile test-results/junit.xml \
+	          --jsonfile test-results/tests.json \
+	          --format standard-verbose \
+	          -- -race -count=1 -coverprofile=test-results/coverage.out ./...
+	@go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+	@go tool cover -func=test-results/coverage.out | tail -1
+	$(MAKE) docker-test-down
+
+.PHONY: test-watch-pretty
+test-watch-pretty: ## Watch and re-run tests with pretty output
+	gotestsum --watch --format testname -- -race ./internal/app/product/domain/...

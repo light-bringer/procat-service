@@ -18,6 +18,7 @@ tools: ## Install development tools
 	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+	go install gotest.tools/gotestsum@latest
 
 # ==================================================================================== #
 # CODE GENERATION
@@ -80,18 +81,30 @@ test: test-unit ## Run all tests (unit + integration + e2e)
 
 .PHONY: test-unit
 test-unit: ## Run unit tests (domain layer only, no DB)
-	go test -v -race -count=1 ./internal/app/product/domain/...
+	@command -v gotestsum >/dev/null 2>&1 && \
+		gotestsum --format testname -- -race -count=1 ./internal/app/product/domain/... || \
+		go test -v -race -count=1 ./internal/app/product/domain/...
 
 .PHONY: test-integration
 test-integration: docker-test-up migrate-test ## Run integration tests (with real Spanner)
-	SPANNER_EMULATOR_HOST=localhost:19010 \
-	go test -v -race -count=1 -tags=integration ./tests/integration/... || ($(MAKE) docker-test-down && exit 1)
+	@command -v gotestsum >/dev/null 2>&1 && \
+		SPANNER_EMULATOR_HOST=localhost:19010 \
+		gotestsum --format testname -- -race -count=1 -tags=integration ./tests/integration/... || \
+		($(MAKE) docker-test-down && exit 1) || \
+		SPANNER_EMULATOR_HOST=localhost:19010 \
+		go test -v -race -count=1 -tags=integration ./tests/integration/... || \
+		($(MAKE) docker-test-down && exit 1)
 	$(MAKE) docker-test-down
 
 .PHONY: test-e2e
 test-e2e: docker-test-up migrate-test ## Run E2E tests
-	SPANNER_EMULATOR_HOST=localhost:19010 \
-	go test -v -race -count=1 -timeout=5m ./tests/e2e/... || ($(MAKE) docker-test-down && exit 1)
+	@command -v gotestsum >/dev/null 2>&1 && \
+		SPANNER_EMULATOR_HOST=localhost:19010 \
+		gotestsum --format testname -- -race -count=1 -timeout=5m ./tests/e2e/... || \
+		($(MAKE) docker-test-down && exit 1) || \
+		SPANNER_EMULATOR_HOST=localhost:19010 \
+		go test -v -race -count=1 -timeout=5m ./tests/e2e/... || \
+		($(MAKE) docker-test-down && exit 1)
 	$(MAKE) docker-test-down
 
 .PHONY: test-all
