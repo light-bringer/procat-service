@@ -132,7 +132,7 @@ func TestProductArchiving(t *testing.T) {
 	require.NoError(t, err)
 
 	// Archive product
-	err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	_, err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
 	// Verify status changed to archived
@@ -185,9 +185,17 @@ func TestArchiveActiveProduct(t *testing.T) {
 	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
+	// Get current version
+	product, err := services.ProductRepo.GetByID(ctx(), productID)
+	require.NoError(t, err)
+	currentVersion := product.Version()
+
 	// Archive active product
 	beforeArchive := time.Now()
-	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{
+		ProductID: productID,
+		Version:   currentVersion,
+	})
 	require.NoError(t, err)
 	afterArchive := time.Now()
 
@@ -222,13 +230,20 @@ func TestArchiveProductWithDiscount(t *testing.T) {
 	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
+	// Get version after activation
+	productAfterActivate, err := services.ProductRepo.GetByID(ctx(), productID)
+	require.NoError(t, err)
+	versionAfterActivate := productAfterActivate.Version()
+
 	// Apply discount
-	now := time.Now().UTC()
+	// Use a time in the past to avoid "future timestamp" errors in Spanner emulator
+	baseTime := time.Now().UTC().Add(-5 * time.Minute)
 	discountReq := &apply_discount.Request{
 		ProductID:       productID,
+		Version:         versionAfterActivate,
 		DiscountPercent: 20.0,
-		StartDate:       now.Add(-1 * time.Hour),
-		EndDate:         now.Add(24 * time.Hour),
+		StartDate:       baseTime.Add(-1 * time.Hour),
+		EndDate:         baseTime.Add(24 * time.Hour),
 	}
 	err = services.ApplyDiscount.Execute(ctx(), discountReq)
 	require.NoError(t, err)
@@ -237,8 +252,16 @@ func TestArchiveProductWithDiscount(t *testing.T) {
 	dtoBeforeArchive, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
 	assert.True(t, dtoBeforeArchive.DiscountActive, "Discount should be active before archiving")
 
+	// Get current version for optimistic locking
+	product, err := services.ProductRepo.GetByID(ctx(), productID)
+	require.NoError(t, err)
+	currentVersion := product.Version()
+
 	// Archive product (should remove discount)
-	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{
+		ProductID: productID,
+		Version:   currentVersion,
+	})
 	require.NoError(t, err)
 	require.NotZero(t, archivedAt, "ArchivedAt should not be zero")
 
