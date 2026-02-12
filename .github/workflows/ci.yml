@@ -102,16 +102,10 @@ jobs:
           flags: unittests
           fail_ci_if_error: false
 
-  # Integration/E2E tests with Spanner emulator
+  # Integration/E2E tests with docker compose
   e2e-tests:
     name: E2E Tests
     runs-on: ubuntu-latest
-    services:
-      spanner-emulator:
-        image: gcr.io/cloud-spanner-emulator/emulator:latest
-        ports:
-          - 9010:9010
-          - 9020:9020
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -132,22 +126,28 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Wait for Spanner emulator
+      - name: Start Spanner emulator with docker compose
         run: |
+          docker compose up -d
           echo "Waiting for Spanner emulator to be ready..."
-          timeout 60 bash -c 'until nc -z localhost 9010; do sleep 1; done'
-          echo "Spanner emulator is ready"
+          sleep 5
 
       - name: Run migrations (test database)
         run: |
-          go run cmd/migrate/main.go \
+          SPANNER_EMULATOR_HOST=localhost:9010 go run cmd/migrate/main.go \
             -instance=test-instance \
             -database=product-catalog-test
-
-      - name: Run E2E tests
-        run: go test -v -race ./tests/e2e/... -timeout 10m
         env:
           SPANNER_EMULATOR_HOST: localhost:9010
+
+      - name: Run E2E tests
+        run: SPANNER_EMULATOR_HOST=localhost:9010 go test -v -race ./tests/e2e/... -timeout 10m
+        env:
+          SPANNER_EMULATOR_HOST: localhost:9010
+
+      - name: Stop Spanner emulator
+        if: always()
+        run: docker compose down -v
 
       - name: Upload E2E test results
         if: always()

@@ -56,12 +56,15 @@ Automated dependency updates running weekly on Mondays at 9:00 AM.
 ### Optional
 - `GO_VERSION: '1.23'` - Go version to use
 
-## Services
+## Infrastructure
 
-### Spanner Emulator
-The CI pipeline uses the official Google Cloud Spanner emulator:
+### Docker Compose
+The CI pipeline uses the existing `docker-compose.yml` to start the Spanner emulator:
 - **Image:** `gcr.io/cloud-spanner-emulator/emulator:latest`
 - **Ports:** 9010 (gRPC), 9020 (HTTP)
+- **Commands:** `docker compose up -d` / `docker compose down -v`
+
+This ensures **100% parity** between local development and CI environments.
 
 ## Running CI Locally
 
