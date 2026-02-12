@@ -8,8 +8,9 @@ import (
 
 // Discount represents a time-bound percentage discount on a product.
 // Supports fractional percentages (e.g., 12.5%, 7.25%) for flexible pricing.
+// Uses *big.Rat internally for precise arithmetic.
 type Discount struct {
-	percentage         float64 // 0.0-100.0, supports fractional values (e.g., 12.5)
+	percentage         *big.Rat  // 0.0-100.0, stored as rational for precision
 	startDate          time.Time
 	endDate            time.Time
 	discountMultiplier *big.Rat // Cached percentage/100 for performance
@@ -19,9 +20,9 @@ type Discount struct {
 // All dates must be in UTC timezone to prevent ambiguity across distributed systems.
 // Discount duration is limited to 2 years maximum for business policy compliance.
 // Percentage supports fractional values (e.g., 12.5 for 12.5% discount).
-func NewDiscount(percentage float64, startDate, endDate time.Time) (*Discount, error) {
-	if percentage < 0 || percentage > 100 {
-		return nil, fmt.Errorf("discount percentage must be between 0 and 100, got %.2f", percentage)
+func NewDiscount(percentageFloat float64, startDate, endDate time.Time) (*Discount, error) {
+	if percentageFloat < 0 || percentageFloat > 100 {
+		return nil, fmt.Errorf("discount percentage must be between 0 and 100, got %.2f", percentageFloat)
 	}
 
 	// Require UTC timezone for consistency
@@ -42,9 +43,12 @@ func NewDiscount(percentage float64, startDate, endDate time.Time) (*Discount, e
 		return nil, fmt.Errorf("discount duration cannot exceed 2 years")
 	}
 
+	// Convert percentage to *big.Rat for precise arithmetic
+	percentage := new(big.Rat).SetFloat64(percentageFloat)
+
 	// Pre-calculate discount multiplier for performance (avoids allocation on every Apply())
-	// Convert float64 to rational number for precise arithmetic
-	discountMultiplier := new(big.Rat).SetFloat64(percentage / 100.0)
+	hundred := big.NewRat(100, 1)
+	discountMultiplier := new(big.Rat).Quo(percentage, hundred)
 
 	return &Discount{
 		percentage:         percentage,
@@ -54,9 +58,16 @@ func NewDiscount(percentage float64, startDate, endDate time.Time) (*Discount, e
 	}, nil
 }
 
-// Percentage returns the discount percentage (supports fractional values).
+// Percentage returns the discount percentage as float64 for external interfaces.
+// For precise internal calculations, use PercentageRat() instead.
 func (d *Discount) Percentage() float64 {
-	return d.percentage
+	f, _ := d.percentage.Float64()
+	return f
+}
+
+// PercentageRat returns the discount percentage as *big.Rat for precise calculations.
+func (d *Discount) PercentageRat() *big.Rat {
+	return new(big.Rat).Set(d.percentage)
 }
 
 // StartDate returns the discount start date.

@@ -308,7 +308,12 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 
 			// Try to commit with version check
 			plan := committer.NewPlan()
-			if mut := suite.ProductRepo.UpdateMut(product); mut != nil {
+			mut, err := suite.ProductRepo.UpdateMut(product)
+			if err != nil {
+				errors[idx] = err
+				return
+			}
+			if mut != nil {
 				plan.Add(mut)
 			}
 			errors[idx] = suite.Committer.Apply(ctx, plan)

@@ -44,8 +44,12 @@ func TestUpdatePrice(t *testing.T) {
 	product, err := services.ProductRepo.GetByID(ctx, productID)
 	require.NoError(t, err)
 
-	assert.Equal(t, int64(150), product.BasePrice().Numerator())
-	assert.Equal(t, int64(1), product.BasePrice().Denominator())
+	num, err := product.BasePrice().Numerator()
+	require.NoError(t, err)
+	denom, err := product.BasePrice().Denominator()
+	require.NoError(t, err)
+	assert.Equal(t, int64(150), num)
+	assert.Equal(t, int64(1), denom)
 
 	// 4. Verify version increment
 	assert.Greater(t, product.Version(), int64(0), "Version should be incremented")

@@ -3,7 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -75,8 +74,8 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) (*spanner.Mutation, err
 	if changes.Dirty(domain.FieldDiscount) {
 		discount := product.DiscountCopy() // Use DiscountCopy() instead of deprecated Discount()
 		if discount != nil {
-			rat := new(big.Rat).SetFloat64(discount.Percentage())
-			updates[m_product.DiscountPercent] = spanner.NullNumeric{Numeric: *rat, Valid: true}
+			percentRat := discount.PercentageRat() // Get *big.Rat directly for precision
+			updates[m_product.DiscountPercent] = spanner.NullNumeric{Numeric: *percentRat, Valid: true}
 			updates[m_product.DiscountStartDate] = discount.StartDate()
 			updates[m_product.DiscountEndDate] = discount.EndDate()
 		} else {
@@ -184,8 +183,8 @@ func (r *ProductRepo) domainToData(product *domain.Product) (*m_product.Data, er
 
 	// Handle discount (nullable)
 	if discount := product.DiscountCopy(); discount != nil { // Use DiscountCopy() instead of deprecated Discount()
-		rat := new(big.Rat).SetFloat64(discount.Percentage())
-		data.DiscountPercent = spanner.NullNumeric{Numeric: *rat, Valid: true}
+		percentRat := discount.PercentageRat() // Get *big.Rat directly for precision
+		data.DiscountPercent = spanner.NullNumeric{Numeric: *percentRat, Valid: true}
 		data.DiscountStartDate = spanner.NullTime{Time: discount.StartDate(), Valid: true}
 		data.DiscountEndDate = spanner.NullTime{Time: discount.EndDate(), Valid: true}
 	}
