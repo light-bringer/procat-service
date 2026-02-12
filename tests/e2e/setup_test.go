@@ -16,6 +16,7 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/remove_discount"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_price"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/internal/pkg/committer"
@@ -27,6 +28,7 @@ type Services struct {
 	// Commands
 	CreateProduct     *create_product.Interactor
 	UpdateProduct     *update_product.Interactor
+	UpdatePrice       *update_price.Interactor
 	ActivateProduct   *activate_product.Interactor
 	DeactivateProduct *deactivate_product.Interactor
 	ApplyDiscount     *apply_discount.Interactor
@@ -64,6 +66,7 @@ func setupTest(t *testing.T) (*Services, func()) {
 	// Create command use cases
 	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	updateProductUseCase := update_product.NewInteractor(productRepo, outboxRepo, comm, clk)
+	updatePriceUseCase := update_price.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	activateProductUseCase := activate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	deactivateProductUseCase := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	applyDiscountUseCase := apply_discount.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -77,6 +80,7 @@ func setupTest(t *testing.T) (*Services, func()) {
 	services := &Services{
 		CreateProduct:     createProductUseCase,
 		UpdateProduct:     updateProductUseCase,
+		UpdatePrice:       updatePriceUseCase,
 		ActivateProduct:   activateProductUseCase,
 		DeactivateProduct: deactivateProductUseCase,
 		ApplyDiscount:     applyDiscountUseCase,
@@ -113,6 +117,7 @@ func setupTestWithMockClock(t *testing.T) (*Services, *clock.MockClock, func()) 
 	// Create command use cases with mock clock
 	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, mockClock)
 	updateProductUseCase := update_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
+	updatePriceUseCase := update_price.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, mockClock)
 	activateProductUseCase := activate_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
 	deactivateProductUseCase := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
 	applyDiscountUseCase := apply_discount.NewInteractor(productRepo, outboxRepo, comm, mockClock)
@@ -126,6 +131,7 @@ func setupTestWithMockClock(t *testing.T) (*Services, *clock.MockClock, func()) 
 	services := &Services{
 		CreateProduct:     createProductUseCase,
 		UpdateProduct:     updateProductUseCase,
+		UpdatePrice:       updatePriceUseCase,
 		ActivateProduct:   activateProductUseCase,
 		DeactivateProduct: deactivateProductUseCase,
 		ApplyDiscount:     applyDiscountUseCase,

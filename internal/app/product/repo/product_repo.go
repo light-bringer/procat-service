@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -66,11 +67,12 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	if changes.Dirty(domain.FieldDiscount) {
 		discount := product.DiscountCopy() // Use DiscountCopy() instead of deprecated Discount()
 		if discount != nil {
-			updates[m_product.DiscountPercent] = discount.Percentage() // Now float64
+			rat := new(big.Rat).SetFloat64(discount.Percentage())
+			updates[m_product.DiscountPercent] = spanner.NullNumeric{Numeric: *rat, Valid: true}
 			updates[m_product.DiscountStartDate] = discount.StartDate()
 			updates[m_product.DiscountEndDate] = discount.EndDate()
 		} else {
-			updates[m_product.DiscountPercent] = spanner.NullFloat64{}
+			updates[m_product.DiscountPercent] = spanner.NullNumeric{}
 			updates[m_product.DiscountStartDate] = spanner.NullTime{}
 			updates[m_product.DiscountEndDate] = spanner.NullTime{}
 		}
@@ -166,7 +168,8 @@ func (r *ProductRepo) domainToData(product *domain.Product) *m_product.Data {
 
 	// Handle discount (nullable)
 	if discount := product.DiscountCopy(); discount != nil { // Use DiscountCopy() instead of deprecated Discount()
-		data.DiscountPercent = spanner.NullFloat64{Float64: discount.Percentage(), Valid: true} // Now float64
+		rat := new(big.Rat).SetFloat64(discount.Percentage())
+		data.DiscountPercent = spanner.NullNumeric{Numeric: *rat, Valid: true}
 		data.DiscountStartDate = spanner.NullTime{Time: discount.StartDate(), Valid: true}
 		data.DiscountEndDate = spanner.NullTime{Time: discount.EndDate(), Valid: true}
 	}
@@ -188,8 +191,9 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 
 	var discount *domain.Discount
 	if data.DiscountPercent.Valid {
+		percent, _ := data.DiscountPercent.Numeric.Float64()
 		discount, err = domain.NewDiscount(
-			data.DiscountPercent.Float64, // Changed from Int64 to Float64 for fractional percentages
+			percent,
 			data.DiscountStartDate.Time,
 			data.DiscountEndDate.Time,
 		)

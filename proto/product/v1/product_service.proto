@@ -16,6 +16,7 @@ service ProductService {
   rpc ApplyDiscount(ApplyDiscountRequest) returns (ApplyDiscountReply);
   rpc RemoveDiscount(RemoveDiscountRequest) returns (RemoveDiscountReply);
   rpc ArchiveProduct(ArchiveProductRequest) returns (ArchiveProductReply);
+  rpc UpdatePrice(UpdatePriceRequest) returns (UpdatePriceReply);
 
   // Queries (read operations)
   rpc GetProduct(GetProductRequest) returns (GetProductReply);
@@ -67,6 +68,19 @@ message UpdateProductRequest {
 }
 
 message UpdateProductReply {
+  // Empty - success indicated by no error
+}
+
+// UpdatePrice
+message UpdatePriceRequest {
+  string product_id = 1;
+  optional int64 version = 2; // For optimistic locking (backwards compatible)
+  Money new_price = 3;
+  string changed_by = 4;
+  string changed_reason = 5;
+}
+
+message UpdatePriceReply {
   // Empty - success indicated by no error
 }
 

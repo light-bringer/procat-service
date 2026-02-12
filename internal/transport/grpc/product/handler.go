@@ -18,6 +18,7 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/remove_discount"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_price"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	pb "github.com/light-bringer/procat-service/proto/product/v1"
 )
@@ -30,6 +31,7 @@ type Handler struct {
 	// Commands
 	createProduct     *create_product.Interactor
 	updateProduct     *update_product.Interactor
+	updatePrice       *update_price.Interactor
 	activateProduct   *activate_product.Interactor
 	deactivateProduct *deactivate_product.Interactor
 	applyDiscount     *apply_discount.Interactor
@@ -46,6 +48,7 @@ type Handler struct {
 func NewHandler(
 	createProduct *create_product.Interactor,
 	updateProduct *update_product.Interactor,
+	updatePrice *update_price.Interactor,
 	activateProduct *activate_product.Interactor,
 	deactivateProduct *deactivate_product.Interactor,
 	applyDiscount *apply_discount.Interactor,
@@ -58,6 +61,7 @@ func NewHandler(
 	return &Handler{
 		createProduct:     createProduct,
 		updateProduct:     updateProduct,
+		updatePrice:       updatePrice,
 		activateProduct:   activateProduct,
 		deactivateProduct: deactivateProduct,
 		applyDiscount:     applyDiscount,
@@ -122,6 +126,33 @@ func (h *Handler) UpdateProduct(ctx context.Context, req *pb.UpdateProductReques
 
 	// 4. Return response
 	return &pb.UpdateProductReply{}, nil
+}
+
+// UpdatePrice updates a product's price.
+func (h *Handler) UpdatePrice(ctx context.Context, req *pb.UpdatePriceRequest) (*pb.UpdatePriceReply, error) {
+	if req.ProductId == "" {
+		return nil, status.Error(codes.InvalidArgument, "product_id is required")
+	}
+
+	// Map proto money to domain money
+	newPrice, err := protoMoneyToDomain(req.NewPrice)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid new_price")
+	}
+
+	appReq := &update_price.Request{
+		ProductID:     req.ProductId,
+		Version:       req.GetVersion(), // Optional version for optimistic locking
+		NewPrice:      newPrice,
+		ChangedBy:     req.ChangedBy,
+		ChangedReason: req.ChangedReason,
+	}
+
+	if err := h.updatePrice.Execute(ctx, appReq); err != nil {
+		return nil, mapDomainErrorToGRPC(err)
+	}
+
+	return &pb.UpdatePriceReply{}, nil
 }
 
 // ActivateProduct activates a product.

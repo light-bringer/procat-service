@@ -51,8 +51,7 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 	// 4. Create command use cases (write operations)
 	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	updateProductUseCase := update_product.NewInteractor(productRepo, outboxRepo, comm, clk)
-	// TODO: Wire up updatePriceUseCase when gRPC endpoint is added
-	_ = update_price.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
+	updatePriceUseCase := update_price.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	activateProductUseCase := activate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	deactivateProductUseCase := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	applyDiscountUseCase := apply_discount.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -68,6 +67,7 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 	productHandler := product.NewHandler(
 		createProductUseCase,
 		updateProductUseCase,
+		updatePriceUseCase,
 		activateProductUseCase,
 		deactivateProductUseCase,
 		applyDiscountUseCase,

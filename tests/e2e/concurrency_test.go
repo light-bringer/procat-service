@@ -13,7 +13,6 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/apply_discount"
-	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/internal/pkg/committer"
 )
@@ -26,13 +25,12 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 	defer cleanup()
 
 	// Create and activate a product
-	basePrice, _ := domain.NewMoney(10000, 100) // $100.00
-	createReq := &create_product.Request{
-		Name:        "Concurrent Test Product",
-		Description: "Testing concurrent discount application",
-		Category:    "electronics",
-		BasePrice:   basePrice,
-	}
+	createReq := NewProductBuilder().
+		WithName("Concurrent Test Product").
+		WithDescription("Testing concurrent discount application").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
 
 	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
@@ -104,13 +102,12 @@ func TestConcurrentProductUpdates(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	basePrice, _ := domain.NewMoney(10000, 100)
-	createReq := &create_product.Request{
-		Name:        "Concurrent Update Test",
-		Description: "Original Description",
-		Category:    "electronics",
-		BasePrice:   basePrice,
-	}
+	createReq := NewProductBuilder().
+		WithName("Concurrent Update Test").
+		WithDescription("Original Description").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
 
 	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
@@ -177,13 +174,12 @@ func TestReadDuringWrite(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	basePrice, _ := domain.NewMoney(10000, 100)
-	createReq := &create_product.Request{
-		Name:        "Read Consistency Test",
-		Description: "Original Description",
-		Category:    "electronics",
-		BasePrice:   basePrice,
-	}
+	createReq := NewProductBuilder().
+		WithName("Read Consistency Test").
+		WithDescription("Original Description").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
 
 	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
@@ -259,13 +255,12 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	basePrice, _ := domain.NewMoney(10000, 100)
-	createReq := &create_product.Request{
-		Name:        "Price Update Test",
-		Description: "Testing concurrent price updates",
-		Category:    "electronics",
-		BasePrice:   basePrice,
-	}
+	createReq := NewProductBuilder().
+		WithName("Price Update Test").
+		WithDescription("Testing concurrent price updates").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
 
 	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
@@ -335,13 +330,12 @@ func TestNoDataRaces(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	basePrice, _ := domain.NewMoney(10000, 100)
-	createReq := &create_product.Request{
-		Name:        "Race Test Product",
-		Description: "Testing for data races",
-		Category:    "electronics",
-		BasePrice:   basePrice,
-	}
+	createReq := NewProductBuilder().
+		WithName("Race Test Product").
+		WithDescription("Testing for data races").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
 
 	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)

@@ -2,6 +2,7 @@ package testutil
 
 import (
 	"context"
+	"math/big"
 	"testing"
 	"time"
 
@@ -57,7 +58,7 @@ func CreateTestProductWithDiscount(t *testing.T, client *spanner.Client, name st
 		Category:             "electronics",
 		BasePriceNumerator:   10000,
 		BasePriceDenominator: 100,
-		DiscountPercent:      spanner.NullFloat64{Float64: discountPercent, Valid: true}, // Changed to NullFloat64
+		DiscountPercent:      spanner.NullNumeric{Numeric: *new(big.Rat).SetFloat64(discountPercent), Valid: true}, // Changed to NullNumeric
 		DiscountStartDate:    spanner.NullTime{Time: now.Add(-1 * time.Hour), Valid: true},
 		DiscountEndDate:      spanner.NullTime{Time: now.Add(24 * time.Hour), Valid: true},
 		Status:               "active",

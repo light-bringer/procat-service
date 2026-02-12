@@ -14,7 +14,7 @@ type Data struct {
 	Category             string              `spanner:"category"`
 	BasePriceNumerator   int64               `spanner:"base_price_numerator"`
 	BasePriceDenominator int64               `spanner:"base_price_denominator"`
-	DiscountPercent      spanner.NullFloat64 `spanner:"discount_percent"` // Changed to NullFloat64 for fractional percentages
+	DiscountPercent      spanner.NullNumeric `spanner:"discount_percent"` // Changed to NullNumeric for fractional percentages (NUMERIC type)
 	DiscountStartDate    spanner.NullTime    `spanner:"discount_start_date"`
 	DiscountEndDate      spanner.NullTime    `spanner:"discount_end_date"`
 	Status               string              `spanner:"status"`

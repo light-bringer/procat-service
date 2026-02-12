@@ -213,13 +213,14 @@ func (rm *ReadModelImpl) dataToDTO(data *m_product.Data, now time.Time) (*contra
 
 	// Handle discount
 	if data.DiscountPercent.Valid {
+		percent, _ := data.DiscountPercent.Numeric.Float64()
 		discount, err := domain.NewDiscount(
-			data.DiscountPercent.Float64, // Changed from Int64 to Float64
+			percent, // Changed from Int64 to Float64
 			data.DiscountStartDate.Time,
 			data.DiscountEndDate.Time,
 		)
 		if err == nil && discount.IsValidAt(now) {
-			dto.DiscountPercent = &data.DiscountPercent.Float64 // Changed from Int64 to Float64
+			dto.DiscountPercent = &percent // Changed from Int64 to Float64
 			dto.DiscountActive = true
 			effectivePrice := discount.Apply(basePrice)
 			effectivePriceFloat, _ := effectivePrice.Float64()

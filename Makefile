@@ -28,11 +28,10 @@ tools: ## Install development tools
 proto: ## Generate protobuf code
 	@export PATH=$$PATH:$$(go env GOPATH)/bin; \
 	cd proto/product/v1 && \
-	protoc --go_out=../../.. --go-grpc_out=../../.. \
+	protoc --go_out=. --go-grpc_out=. \
 		--go_opt=paths=source_relative --go-grpc_opt=paths=source_relative \
-		product_service.proto && \
-	cd ../../.. && \
-	go mod tidy
+		product_service.proto
+	@go mod tidy
 
 .PHONY: generate
 generate: proto ## Run all code generation

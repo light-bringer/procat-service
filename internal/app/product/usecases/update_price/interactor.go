@@ -16,6 +16,7 @@ import (
 // Request contains the data needed to update a product's price.
 type Request struct {
 	ProductID     string
+	Version       int64 // For optimistic locking
 	NewPrice      *domain.Money
 	ChangedBy     string // User/system identifier
 	ChangedReason string // Optional explanation for price change
@@ -105,8 +106,11 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		return nil // No changes
 	}
 
-	if err := i.committer.Apply(ctx, plan); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	// 6. Execute transaction with optimistic locking
+	// Always enforce optimistic locking for UpdatePrice
+	err = i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan)
+	if err != nil {
+		return fmt.Errorf("failed to update price: %w", err)
 	}
 
 	return nil

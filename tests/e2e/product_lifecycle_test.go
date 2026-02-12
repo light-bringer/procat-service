@@ -13,7 +13,6 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/apply_discount"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/archive_product"
-	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/tests/testutil"
@@ -24,13 +23,12 @@ func TestProductCreationFlow(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	price, _ := domain.NewMoney(249900, 100) // $2499.00
-	req := &create_product.Request{
-		Name:        "MacBook Pro",
-		Description: "16-inch laptop",
-		Category:    "electronics",
-		BasePrice:   price,
-	}
+	req := NewProductBuilder().
+		WithName("MacBook Pro").
+		WithDescription("16-inch laptop").
+		WithCategory("electronics").
+		WithPrice(2499.00).
+		Build()
 
 	productID, err := services.CreateProduct.Execute(ctx(), req)
 	require.NoError(t, err)
@@ -53,13 +51,14 @@ func TestProductActivationDeactivation(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	price, _ := domain.NewMoney(10000, 100)
-	productID, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name:        "Test Product",
-		Description: "Test",
-		Category:    "electronics",
-		BasePrice:   price,
-	})
+	req := NewProductBuilder().
+		WithName("Test Product").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
 	require.NoError(t, err)
 
 	// Activate product
@@ -90,13 +89,14 @@ func TestProductUpdateFlow(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	price, _ := domain.NewMoney(10000, 100)
-	productID, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name:        "Original Name",
-		Description: "Original Description",
-		Category:    "electronics",
-		BasePrice:   price,
-	})
+	req := NewProductBuilder().
+		WithName("Original Name").
+		WithDescription("Original Description").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
 	require.NoError(t, err)
 
 	// Update product
@@ -121,13 +121,14 @@ func TestProductArchiving(t *testing.T) {
 	defer cleanup()
 
 	// Create a product
-	price, _ := domain.NewMoney(10000, 100)
-	productID, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name:        "To Archive",
-		Description: "Test",
-		Category:    "electronics",
-		BasePrice:   price,
-	})
+	req := NewProductBuilder().
+		WithName("To Archive").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
 	require.NoError(t, err)
 
 	// Archive product
@@ -171,13 +172,14 @@ func TestArchiveActiveProduct(t *testing.T) {
 	defer cleanup()
 
 	// Create and activate product
-	price, _ := domain.NewMoney(10000, 100)
-	productID, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name:        "Active to Archive",
-		Description: "Test",
-		Category:    "electronics",
-		BasePrice:   price,
-	})
+	req := NewProductBuilder().
+		WithName("Active to Archive").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
 	require.NoError(t, err)
 
 	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
@@ -197,35 +199,38 @@ func TestBusinessRuleValidations(t *testing.T) {
 	defer cleanup()
 
 	t.Run("cannot create product with empty name", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100)
-		_, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
-			Name:        "",
-			Description: "Test",
-			Category:    "electronics",
-			BasePrice:   price,
-		})
+		req := NewProductBuilder().
+			WithName("").
+			WithDescription("Test").
+			WithCategory("electronics").
+			WithPrice(100.00).
+			Build()
+
+		_, err := services.CreateProduct.Execute(ctx(), req)
 		assert.ErrorIs(t, err, domain.ErrEmptyName)
 	})
 
 	t.Run("cannot create product with negative price", func(t *testing.T) {
-		price, _ := domain.NewMoney(-10000, 100)
-		_, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
-			Name:        "Test",
-			Description: "Test",
-			Category:    "electronics",
-			BasePrice:   price,
-		})
+		req := NewProductBuilder().
+			WithName("Test").
+			WithDescription("Test").
+			WithCategory("electronics").
+			WithPrice(-100.00).
+			Build()
+
+		_, err := services.CreateProduct.Execute(ctx(), req)
 		assert.ErrorIs(t, err, domain.ErrInvalidPrice)
 	})
 
 	t.Run("cannot activate already active product", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100)
-		productID, _ := services.CreateProduct.Execute(ctx(), &create_product.Request{
-			Name:        "Test",
-			Description: "Test",
-			Category:    "electronics",
-			BasePrice:   price,
-		})
+		req := NewProductBuilder().
+			WithName("Test").
+			WithDescription("Test").
+			WithCategory("electronics").
+			WithPrice(100.00).
+			Build()
+
+		productID, _ := services.CreateProduct.Execute(ctx(), req)
 
 		// Activate once
 		_ = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
@@ -241,16 +246,13 @@ func TestListProductsWithFiltering(t *testing.T) {
 	defer cleanup()
 
 	// Create multiple products
-	price, _ := domain.NewMoney(10000, 100)
-	services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name: "Product 1", Description: "Test", Category: "electronics", BasePrice: price,
-	})
-	services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name: "Product 2", Description: "Test", Category: "books", BasePrice: price,
-	})
-	services.CreateProduct.Execute(ctx(), &create_product.Request{
-		Name: "Product 3", Description: "Test", Category: "electronics", BasePrice: price,
-	})
+	req1 := NewProductBuilder().WithName("Product 1").WithCategory("electronics").Build()
+	req2 := NewProductBuilder().WithName("Product 2").WithCategory("books").Build()
+	req3 := NewProductBuilder().WithName("Product 3").WithCategory("electronics").Build()
+
+	services.CreateProduct.Execute(ctx(), req1)
+	services.CreateProduct.Execute(ctx(), req2)
+	services.CreateProduct.Execute(ctx(), req3)
 
 	t.Run("list all products", func(t *testing.T) {
 		result, err := services.ListProducts.Execute(ctx(), &list_products.Request{PageSize: 10})
