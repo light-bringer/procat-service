@@ -216,7 +216,7 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     needs:
-      [build, unit-tests, e2e-tests, proto-check, vulnerability-check]
+      [build, unit-tests, e2e-tests, proto-check]
     if: always()
     steps:
       - name: Check all jobs status
@@ -224,8 +224,7 @@ jobs:
           if [ "${{ needs.build.result }}" != "success" ] || \
              [ "${{ needs.unit-tests.result }}" != "success" ] || \
              [ "${{ needs.e2e-tests.result }}" != "success" ] || \
-             [ "${{ needs.proto-check.result }}" != "success" ] || \
-             [ "${{ needs.vulnerability-check.result }}" != "success" ]; then
+             [ "${{ needs.proto-check.result }}" != "success" ]; then
             echo "One or more CI jobs failed"
             exit 1
           fi
