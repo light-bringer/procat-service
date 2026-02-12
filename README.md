@@ -1,5 +1,12 @@
 # Product Catalog Service
 
+[![CI](https://github.com/light-bringer/procat-service/workflows/CI/badge.svg)](https://github.com/light-bringer/procat-service/actions/workflows/ci.yml)
+[![Release](https://github.com/light-bringer/procat-service/workflows/Release/badge.svg)](https://github.com/light-bringer/procat-service/actions/workflows/release.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/light-bringer/procat-service)](https://goreportcard.com/report/github.com/light-bringer/procat-service)
+[![codecov](https://codecov.io/gh/light-bringer/procat-service/branch/main/graph/badge.svg)](https://codecov.io/gh/light-bringer/procat-service)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/light-bringer/procat-service)](https://github.com/light-bringer/procat-service/blob/main/go.mod)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A Go microservice implementing product management and pricing using **Domain-Driven Design (DDD)**, **Clean Architecture**, and the **Golden Mutation Pattern** with Google Cloud Spanner.
 
 ## 🎯 Features

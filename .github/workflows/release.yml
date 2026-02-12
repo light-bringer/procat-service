@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  GO_VERSION: '1.23'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Build binaries
+        run: |
+          # Build for multiple platforms
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/server-linux-amd64 cmd/server/main.go
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/server-linux-arm64 cmd/server/main.go
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/server-darwin-amd64 cmd/server/main.go
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o bin/server-darwin-arm64 cmd/server/main.go
+
+          # Build migrate tool
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o bin/migrate-linux-amd64 cmd/migrate/main.go
+          GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o bin/migrate-linux-arm64 cmd/migrate/main.go
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o bin/migrate-darwin-amd64 cmd/migrate/main.go
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o bin/migrate-darwin-arm64 cmd/migrate/main.go
+
+      - name: Create checksums
+        run: |
+          cd bin
+          sha256sum * > checksums.txt
+          cat checksums.txt
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get commits since last tag
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" HEAD)
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" ${PREVIOUS_TAG}..HEAD)
+          fi
+
+          # Save to file for release notes
+          echo "$CHANGELOG" > CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bin/server-*
+            bin/migrate-*
+            bin/checksums.txt
+          body_path: CHANGELOG.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, 'rc') || contains(steps.version.outputs.version, 'beta') || contains(steps.version.outputs.version, 'alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        if: "!contains(steps.version.outputs.version, 'rc')"
+        run: |
+          echo "Docker build would happen here"
+          # docker build -t ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} .
+          # docker push ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}

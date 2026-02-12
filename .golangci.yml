@@ -1,0 +1,89 @@
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow # too many false positives
+
+  gocyclo:
+    min-complexity: 15
+
+  dupl:
+    threshold: 100
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  misspell:
+    locale: US
+
+  lll:
+    line-length: 140
+
+  goimports:
+    local-prefixes: github.com/light-bringer/procat-service
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint
+      - unnamedResult
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Go static analysis
+    - typecheck     # Type-check Go code
+    - unused        # Check for unused code
+    - gofmt         # Check code formatting
+    - goimports     # Check import formatting
+    - misspell      # Check for misspelled words
+    - goconst       # Find repeated strings
+    - gocyclo       # Check cyclomatic complexity
+    - dupl          # Check for code duplication
+    - gosec         # Security checks
+    - unconvert     # Remove unnecessary type conversions
+    - gocritic      # Comprehensive Go linter
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - dupl
+        - gosec
+        - goconst
+
+    # Exclude generated proto files
+    - path: \.pb\.go$
+      linters:
+        - all
+
+    # Exclude migrations (SQL files executed via string)
+    - path: migrations/
+      linters:
+        - all
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: true

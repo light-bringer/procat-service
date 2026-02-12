@@ -206,6 +206,31 @@ vet: ## Run go vet
 check: fmt vet lint ## Run all code quality checks
 
 # ==================================================================================== #
+# CI/CD
+# ==================================================================================== #
+
+.PHONY: ci-lint
+ci-lint: ## Run linting for CI (with timeout and no cache)
+	golangci-lint run --timeout=5m --out-format=github-actions ./...
+
+.PHONY: ci-test
+ci-test: ## Run tests for CI (unit only, no DB required)
+	go test -v -race -coverprofile=coverage.txt -covermode=atomic ./internal/...
+
+.PHONY: ci-e2e
+ci-e2e: ## Run E2E tests for CI (requires Spanner emulator)
+	go test -v -race -timeout=10m ./tests/e2e/...
+
+.PHONY: ci-build
+ci-build: ## Build binaries for CI verification
+	go build -v ./...
+	go build -o bin/server cmd/server/main.go
+	go build -o bin/migrate cmd/migrate/main.go
+
+.PHONY: ci-all
+ci-all: ci-lint ci-build ci-test ## Run complete CI pipeline locally
+
+# ==================================================================================== #
 # CLEANUP
 # ==================================================================================== #
 
