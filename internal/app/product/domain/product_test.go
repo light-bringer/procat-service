@@ -6,14 +6,17 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 )
 
 func TestNewProduct(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
+	clk := clock.NewMockClock(now)
 
 	t.Run("valid product creation", func(t *testing.T) {
-		p, err := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+		p, err := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 		require.NoError(t, err)
 		assert.Equal(t, "id-1", p.ID())
 		assert.Equal(t, "Test Product", p.Name())
@@ -23,24 +26,24 @@ func TestNewProduct(t *testing.T) {
 	})
 
 	t.Run("empty name returns error", func(t *testing.T) {
-		_, err := NewProduct("id-1", "", "Description", "electronics", price, now)
+		_, err := NewProduct("id-1", "", "Description", "electronics", price, now, clk)
 		assert.ErrorIs(t, err, ErrEmptyName)
 	})
 
 	t.Run("empty category returns error", func(t *testing.T) {
-		_, err := NewProduct("id-1", "Test", "Description", "", price, now)
+		_, err := NewProduct("id-1", "Test", "Description", "", price, now, clk)
 		assert.ErrorIs(t, err, ErrInvalidCategory)
 	})
 
 	t.Run("negative price returns error", func(t *testing.T) {
 		negativePrice, _ := NewMoney(-100, 1)
-		_, err := NewProduct("id-1", "Test", "Description", "electronics", negativePrice, now)
+		_, err := NewProduct("id-1", "Test", "Description", "electronics", negativePrice, now, clk)
 		assert.ErrorIs(t, err, ErrInvalidPrice)
 	})
 
 	t.Run("zero price returns error", func(t *testing.T) {
 		zeroPrice, _ := NewMoney(0, 1)
-		_, err := NewProduct("id-1", "Test", "Description", "electronics", zeroPrice, now)
+		_, err := NewProduct("id-1", "Test", "Description", "electronics", zeroPrice, now, clk)
 		assert.ErrorIs(t, err, ErrInvalidPrice)
 	})
 }
@@ -48,7 +51,8 @@ func TestNewProduct(t *testing.T) {
 func TestProduct_Activate(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
-	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 
 	err := p.Activate(now)
 	require.NoError(t, err)
@@ -60,7 +64,8 @@ func TestProduct_Activate(t *testing.T) {
 func TestProduct_Deactivate(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
-	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 	p.Activate(now)
 
 	err := p.Deactivate(now)
@@ -71,7 +76,8 @@ func TestProduct_Deactivate(t *testing.T) {
 func TestProduct_ApplyDiscount(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
-	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 	p.Activate(now)
 
 	startDate := now
@@ -86,7 +92,7 @@ func TestProduct_ApplyDiscount(t *testing.T) {
 	})
 
 	t.Run("cannot apply discount to inactive product", func(t *testing.T) {
-		p2, _ := NewProduct("id-2", "Test", "Desc", "electronics", price, now)
+		p2, _ := NewProduct("id-2", "Test", "Desc", "electronics", price, now, clk)
 		err := p2.ApplyDiscount(discount, now)
 		assert.ErrorIs(t, err, ErrCannotApplyToInactive)
 	})
@@ -101,7 +107,8 @@ func TestProduct_ApplyDiscount(t *testing.T) {
 func TestProduct_CalculateEffectivePrice(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
-	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 
 	t.Run("without discount returns base price", func(t *testing.T) {
 		effectivePrice := p.CalculateEffectivePrice(now)
@@ -129,7 +136,8 @@ func TestProduct_CalculateEffectivePrice(t *testing.T) {
 func TestProduct_Archive(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
-	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 
 	err := p.Archive(now)
 	require.NoError(t, err)
@@ -141,7 +149,8 @@ func TestProduct_Archive(t *testing.T) {
 func TestProduct_CannotModifyArchived(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
-	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 	p.Archive(now)
 
 	t.Run("cannot set name", func(t *testing.T) {

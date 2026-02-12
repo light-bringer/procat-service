@@ -2,6 +2,8 @@ package domain
 
 import (
 	"time"
+
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 )
 
 // Field names for change tracking
@@ -38,6 +40,9 @@ type Product struct {
 	updatedAt   time.Time
 	archivedAt  *time.Time
 
+	// Clock for time operations (injected for testability)
+	clock clock.Clock
+
 	// Change tracking for optimized repository updates
 	changes *ChangeTracker
 
@@ -46,7 +51,7 @@ type Product struct {
 }
 
 // NewProduct creates a new Product aggregate (for creation).
-func NewProduct(id, name, description, category string, basePrice *Money, now time.Time) (*Product, error) {
+func NewProduct(id, name, description, category string, basePrice *Money, now time.Time, clk clock.Clock) (*Product, error) {
 	if name == "" {
 		return nil, ErrEmptyName
 	}
@@ -68,6 +73,7 @@ func NewProduct(id, name, description, category string, basePrice *Money, now ti
 		status:      StatusInactive,
 		createdAt:   now,
 		updatedAt:   now,
+		clock:       clk,
 		changes:     NewChangeTracker(),
 		events:      make([]DomainEvent, 0),
 	}
@@ -101,6 +107,7 @@ func ReconstructProduct(
 	status ProductStatus,
 	createdAt, updatedAt time.Time,
 	archivedAt *time.Time,
+	clk clock.Clock,
 ) *Product {
 	return &Product{
 		id:          id,
@@ -113,6 +120,7 @@ func ReconstructProduct(
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
 		archivedAt:  archivedAt,
+		clock:       clk,
 		changes:     NewChangeTracker(), // Start with clean slate
 		events:      make([]DomainEvent, 0),
 	}
@@ -144,6 +152,16 @@ func (p *Product) SetName(name string) error {
 
 	p.name = name
 	p.changes.MarkDirty(FieldName)
+
+	// Record update event (consistent with other domain operations)
+	p.recordEvent(&ProductUpdatedEvent{
+		ProductID:   p.id,
+		Name:        p.name,
+		Description: p.description,
+		Category:    p.category,
+		UpdatedAt:   p.clock.Now(),
+	})
+
 	return nil
 }
 
@@ -155,6 +173,15 @@ func (p *Product) SetDescription(description string) error {
 
 	p.description = description
 	p.changes.MarkDirty(FieldDescription)
+
+	p.recordEvent(&ProductUpdatedEvent{
+		ProductID:   p.id,
+		Name:        p.name,
+		Description: p.description,
+		Category:    p.category,
+		UpdatedAt:   p.clock.Now(),
+	})
+
 	return nil
 }
 
@@ -170,6 +197,15 @@ func (p *Product) SetCategory(category string) error {
 
 	p.category = category
 	p.changes.MarkDirty(FieldCategory)
+
+	p.recordEvent(&ProductUpdatedEvent{
+		ProductID:   p.id,
+		Name:        p.name,
+		Description: p.description,
+		Category:    p.category,
+		UpdatedAt:   p.clock.Now(),
+	})
+
 	return nil
 }
 

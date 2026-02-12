@@ -62,6 +62,7 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 		req.Category,
 		req.BasePrice,
 		now,
+		i.clock,
 	)
 	if err != nil {
 		return "", fmt.Errorf("failed to create product: %w", err)

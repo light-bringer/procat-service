@@ -77,18 +77,8 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 		plan.Add(mut)
 	}
 
-	// 5. Add outbox events
-	if len(product.DomainEvents()) > 0 {
-		now := i.clock.Now()
-		// Record update event
-		event := &domain.ProductUpdatedEvent{
-			ProductID:   product.ID(),
-			Name:        product.Name(),
-			Description: product.Description(),
-			Category:    product.Category(),
-			UpdatedAt:   now,
-		}
-
+	// 5. Add outbox events (standard pattern - same as activate, apply_discount, etc.)
+	for _, event := range product.DomainEvents() {
 		payload, err := i.serializeEvent(event)
 		if err != nil {
 			return fmt.Errorf("failed to serialize event: %w", err)
