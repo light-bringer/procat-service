@@ -41,7 +41,7 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 	comm := committer.NewCommitter(spannerClient)
 
 	// 3. Create repositories
-	productRepo := repo.NewProductRepo(spannerClient)
+	productRepo := repo.NewProductRepo(spannerClient, clk)
 	outboxRepo := repo.NewOutboxRepo(spannerClient)
 	readModel := repo.NewReadModel(spannerClient, clk)
 	eventsReadModel := repo.NewEventsReadModel(spannerClient)

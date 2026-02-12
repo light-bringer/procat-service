@@ -18,13 +18,15 @@ import (
 type ProductRepo struct {
 	client *spanner.Client
 	model  *m_product.Model
+	clock  clock.Clock
 }
 
 // NewProductRepo creates a new ProductRepo.
-func NewProductRepo(client *spanner.Client) contracts.ProductRepository {
+func NewProductRepo(client *spanner.Client, clk clock.Clock) contracts.ProductRepository {
 	return &ProductRepo{
 		client: client,
 		model:  m_product.NewModel(),
+		clock:  clk,
 	}
 }
 
@@ -91,7 +93,7 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	}
 
 	// Always update the updated_at timestamp when any field changes
-	updates[m_product.UpdatedAt] = time.Now()
+	updates[m_product.UpdatedAt] = r.clock.Now()
 
 	return r.model.UpdateMut(product.ID(), updates)
 }
@@ -193,9 +195,7 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 		archivedAt = &data.ArchivedAt.Time
 	}
 
-	// Use real clock for reconstructed products
-	clk := clock.NewRealClock()
-
+	// Use injected clock for reconstructed products
 	return domain.ReconstructProduct(
 		data.ProductID,
 		data.Name,
@@ -207,6 +207,6 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 		data.CreatedAt,
 		data.UpdatedAt,
 		archivedAt,
-		clk,
+		r.clock,
 	), nil
 }

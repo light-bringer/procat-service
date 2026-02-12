@@ -22,7 +22,8 @@ func TestProductRepository_InsertMut(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	repository := repo.NewProductRepo(client)
+	clk := clock.NewRealClock()
+	repository := repo.NewProductRepo(client, clk)
 
 	// Create a new product
 	price, _ := domain.NewMoney(10000, 100) // $100.00
@@ -54,7 +55,8 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	repository := repo.NewProductRepo(client)
+	clk := clock.NewRealClock()
+	repository := repo.NewProductRepo(client, clk)
 
 	// Create and insert a product
 	price, _ := domain.NewMoney(10000, 100)
@@ -95,7 +97,8 @@ func TestProductRepository_UpdateMut_OnlyDirtyFields(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	repository := repo.NewProductRepo(client)
+	clk := clock.NewRealClock()
+	repository := repo.NewProductRepo(client, clk)
 
 	// Create a product
 	price, _ := domain.NewMoney(10000, 100)
@@ -119,7 +122,8 @@ func TestProductRepository_GetByID(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	repository := repo.NewProductRepo(client)
+	clk := clock.NewRealClock()
+	repository := repo.NewProductRepo(client, clk)
 
 	t.Run("product exists", func(t *testing.T) {
 		// Create product using fixture
@@ -144,7 +148,8 @@ func TestProductRepository_ReconstructProductWithDiscount(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	repository := repo.NewProductRepo(client)
+	clk := clock.NewRealClock()
+	repository := repo.NewProductRepo(client, clk)
 
 	// Create product with discount using fixture
 	productID := testutil.CreateTestProductWithDiscount(t, client, "Discounted Product", 20)
@@ -168,7 +173,8 @@ func TestProductRepository_Exists(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	repository := repo.NewProductRepo(client)
+	clk := clock.NewRealClock()
+	repository := repo.NewProductRepo(client, clk)
 
 	t.Run("product exists", func(t *testing.T) {
 		productID := testutil.CreateTestProduct(t, client, "Test Product")

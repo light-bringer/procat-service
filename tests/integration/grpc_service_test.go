@@ -49,7 +49,7 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 	comm := committer.NewCommitter(client)
 
 	// Create repositories
-	productRepo := repo.NewProductRepo(client)
+	productRepo := repo.NewProductRepo(client, clk)
 	outboxRepo := repo.NewOutboxRepo(client)
 	readModel := repo.NewReadModel(client, clk)
 

@@ -53,7 +53,7 @@ func setupTest(t *testing.T) (*Services, func()) {
 	comm := committer.NewCommitter(client)
 
 	// Create repositories
-	productRepo := repo.NewProductRepo(client)
+	productRepo := repo.NewProductRepo(client, clk)
 	outboxRepo := repo.NewOutboxRepo(client)
 	readModel := repo.NewReadModel(client, clk)
 
@@ -99,7 +99,7 @@ func setupTestWithMockClock(t *testing.T) (*Services, *clock.MockClock, func()) 
 	comm := committer.NewCommitter(client)
 
 	// Create repositories
-	productRepo := repo.NewProductRepo(client)
+	productRepo := repo.NewProductRepo(client, mockClock)
 	outboxRepo := repo.NewOutboxRepo(client)
 	readModel := repo.NewReadModel(client, mockClock)
 
