@@ -137,7 +137,6 @@ func (p *Product) Name() string               { return p.name }
 func (p *Product) Description() string        { return p.description }
 func (p *Product) Category() string           { return p.category }
 func (p *Product) BasePrice() *Money          { return p.basePrice.Copy() }
-func (p *Product) Discount() *Discount        { return p.discount }
 func (p *Product) Status() ProductStatus      { return p.status }
 func (p *Product) Version() int64             { return p.version }
 func (p *Product) CreatedAt() time.Time       { return p.createdAt }
@@ -145,6 +144,30 @@ func (p *Product) UpdatedAt() time.Time       { return p.updatedAt }
 func (p *Product) ArchivedAt() *time.Time     { return p.archivedAt }
 func (p *Product) Changes() *ChangeTracker    { return p.changes }
 func (p *Product) DomainEvents() []DomainEvent { return p.events }
+
+// Discount returns the raw discount pointer. Use with caution - check for nil before use.
+// Prefer using HasDiscount() for nil checks and DiscountCopy() for safe access.
+// DEPRECATED: This method exposes internal state. Use DiscountCopy() instead.
+func (p *Product) Discount() *Discount { return p.discount }
+
+// HasDiscount returns true if the product has a discount (not nil).
+func (p *Product) HasDiscount() bool {
+	return p.discount != nil
+}
+
+// DiscountCopy returns a copy of the discount, or nil if no discount exists.
+// This prevents external modification of the internal discount state.
+func (p *Product) DiscountCopy() *Discount {
+	if p.discount == nil {
+		return nil
+	}
+	// Create a shallow copy (all Discount fields are value types)
+	return &Discount{
+		percentage: p.discount.percentage,
+		startDate:  p.discount.startDate,
+		endDate:    p.discount.endDate,
+	}
+}
 
 // SetName updates the product name.
 func (p *Product) SetName(name string) error {

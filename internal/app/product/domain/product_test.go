@@ -166,3 +166,67 @@ func TestProduct_CannotModifyArchived(t *testing.T) {
 		assert.ErrorIs(t, err, ErrCannotModifyArchived)
 	})
 }
+
+func TestProduct_HasDiscount(t *testing.T) {
+	price, _ := NewMoney(100, 1)
+	now := time.Now()
+	clk := clock.NewMockClock(now)
+
+	t.Run("returns false when no discount", func(t *testing.T) {
+		p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
+		assert.False(t, p.HasDiscount())
+	})
+
+	t.Run("returns true when discount exists", func(t *testing.T) {
+		p, _ := NewProduct("id-2", "Test Product", "Description", "electronics", price, now, clk)
+		p.Activate(now)
+		discount, _ := NewDiscount(20, now, now.Add(24*time.Hour))
+		p.ApplyDiscount(discount, now)
+		assert.True(t, p.HasDiscount())
+	})
+}
+
+func TestProduct_DiscountCopy(t *testing.T) {
+	price, _ := NewMoney(100, 1)
+	now := time.Now()
+	clk := clock.NewMockClock(now)
+
+	t.Run("returns nil when no discount", func(t *testing.T) {
+		p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
+		assert.Nil(t, p.DiscountCopy())
+	})
+
+	t.Run("returns copy of discount", func(t *testing.T) {
+		p, _ := NewProduct("id-2", "Test Product", "Description", "electronics", price, now, clk)
+		p.Activate(now)
+		startDate := now
+		endDate := now.Add(24 * time.Hour)
+		discount, _ := NewDiscount(20, startDate, endDate)
+		p.ApplyDiscount(discount, now)
+
+		copy := p.DiscountCopy()
+		require.NotNil(t, copy)
+		assert.Equal(t, int64(20), copy.Percentage())
+		assert.Equal(t, startDate, copy.StartDate())
+		assert.Equal(t, endDate, copy.EndDate())
+	})
+
+	t.Run("returned copy is independent of original", func(t *testing.T) {
+		p, _ := NewProduct("id-3", "Test Product", "Description", "electronics", price, now, clk)
+		p.Activate(now)
+		discount, _ := NewDiscount(20, now, now.Add(24*time.Hour))
+		p.ApplyDiscount(discount, now)
+
+		copy := p.DiscountCopy()
+
+		// Verify the copy has same values
+		assert.Equal(t, p.Discount().Percentage(), copy.Percentage())
+
+		// Remove discount from product
+		p.RemoveDiscount(now)
+
+		// Verify copy is still valid and unchanged
+		assert.Nil(t, p.DiscountCopy())
+		assert.Equal(t, int64(20), copy.Percentage())
+	})
+}
