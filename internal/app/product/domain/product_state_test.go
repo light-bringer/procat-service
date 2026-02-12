@@ -204,7 +204,7 @@ func TestDiscountOnlyOnActiveProducts(t *testing.T) {
 
 		err := p.ApplyDiscount(discount, now)
 		require.NoError(t, err)
-		assert.NotNil(t, p.Discount())
+		assert.NotNil(t, p.DiscountCopy()) // Use DiscountCopy() instead of deprecated Discount()
 	})
 
 	t.Run("cannot apply discount to inactive product", func(t *testing.T) {
@@ -230,7 +230,7 @@ func TestDiscountOnlyOnActiveProducts(t *testing.T) {
 
 		err := p.RemoveDiscount(now)
 		require.NoError(t, err)
-		assert.Nil(t, p.Discount())
+		assert.Nil(t, p.DiscountCopy()) // Use DiscountCopy() instead of deprecated Discount()
 	})
 
 	t.Run("cannot apply second discount when one exists", func(t *testing.T) {

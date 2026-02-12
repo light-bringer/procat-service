@@ -90,11 +90,11 @@ func (e *ProductDeactivatedEvent) AggregateID() string {
 
 // DiscountAppliedEvent is emitted when a discount is applied to a product.
 type DiscountAppliedEvent struct {
-	ProductID        string
-	DiscountPercent  int64
+	ProductID         string
+	DiscountPercent   float64 // Changed from int64 to float64 for fractional percentages
 	DiscountStartDate time.Time
 	DiscountEndDate   time.Time
-	AppliedAt        time.Time
+	AppliedAt         time.Time
 }
 
 func (e *DiscountAppliedEvent) EventType() string {

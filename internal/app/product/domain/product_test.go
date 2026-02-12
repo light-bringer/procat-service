@@ -183,7 +183,7 @@ func TestProduct_ApplyDiscount(t *testing.T) {
 	t.Run("apply discount to active product", func(t *testing.T) {
 		err := p.ApplyDiscount(discount, now)
 		require.NoError(t, err)
-		assert.NotNil(t, p.Discount())
+		assert.NotNil(t, p.DiscountCopy()) // Use DiscountCopy() instead of deprecated Discount()
 		assert.True(t, p.Changes().Dirty(FieldDiscount))
 	})
 
@@ -302,7 +302,7 @@ func TestProduct_DiscountCopy(t *testing.T) {
 
 		copy := p.DiscountCopy()
 		require.NotNil(t, copy)
-		assert.Equal(t, int64(20), copy.Percentage())
+		assert.Equal(t, 20.0, copy.Percentage()) // Changed from int64(20) to 20.0 for float64
 		assert.Equal(t, startDate, copy.StartDate())
 		assert.Equal(t, endDate, copy.EndDate())
 	})
@@ -316,14 +316,14 @@ func TestProduct_DiscountCopy(t *testing.T) {
 		copy := p.DiscountCopy()
 
 		// Verify the copy has same values
-		assert.Equal(t, p.Discount().Percentage(), copy.Percentage())
+		assert.Equal(t, p.DiscountCopy().Percentage(), copy.Percentage()) // Use DiscountCopy() instead of deprecated Discount()
 
 		// Remove discount from product
 		p.RemoveDiscount(now)
 
 		// Verify copy is still valid and unchanged
 		assert.Nil(t, p.DiscountCopy())
-		assert.Equal(t, int64(20), copy.Percentage())
+		assert.Equal(t, 20.0, copy.Percentage()) // Changed from int64(20) to 20.0 for float64
 	})
 }
 

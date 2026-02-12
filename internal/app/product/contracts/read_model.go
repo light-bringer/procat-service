@@ -7,25 +7,25 @@ import (
 
 // ProductDTO is a data transfer object for product queries.
 type ProductDTO struct {
-	ProductID        string
-	Name             string
-	Description      string
-	Category         string
-	BasePrice        float64 // Approximate representation for display
-	EffectivePrice   float64 // Current price with discount applied
-	DiscountPercent  *int64
-	DiscountActive   bool
-	Status           string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ProductID       string
+	Name            string
+	Description     string
+	Category        string
+	BasePrice       float64  // Approximate representation for display
+	EffectivePrice  float64  // Current price with discount applied
+	DiscountPercent *float64 // Changed from *int64 to *float64 for fractional percentages
+	DiscountActive  bool
+	Status          string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // ListFilter defines filtering options for listing products.
 type ListFilter struct {
-	Category   string
-	Status     string
-	PageSize   int
-	PageToken  string
+	Category  string
+	Status    string
+	PageSize  int
+	PageToken string
 }
 
 // ListResult contains paginated product list results.

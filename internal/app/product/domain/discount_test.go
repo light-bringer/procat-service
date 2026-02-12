@@ -15,7 +15,7 @@ func TestNewDiscount(t *testing.T) {
 	t.Run("valid discount", func(t *testing.T) {
 		d, err := NewDiscount(20, startDate, endDate)
 		require.NoError(t, err)
-		assert.Equal(t, int64(20), d.Percentage())
+		assert.Equal(t, 20.0, d.Percentage()) // Changed from int64(20) to 20.0 for float64
 	})
 
 	t.Run("percentage below 0 returns error", func(t *testing.T) {

@@ -109,6 +109,7 @@ func (h *Handler) UpdateProduct(ctx context.Context, req *pb.UpdateProductReques
 	// 2. Map proto → application request
 	appReq := &update_product.Request{
 		ProductID:   req.ProductId,
+		Version:     req.GetVersion(), // Optional version for optimistic locking
 		Name:        req.Name,
 		Description: req.Description,
 		Category:    req.Category,
@@ -129,7 +130,10 @@ func (h *Handler) ActivateProduct(ctx context.Context, req *pb.ActivateProductRe
 		return nil, status.Error(codes.InvalidArgument, "product_id is required")
 	}
 
-	appReq := &activate_product.Request{ProductID: req.ProductId}
+	appReq := &activate_product.Request{
+		ProductID: req.ProductId,
+		Version:   req.GetVersion(), // Optional version for optimistic locking
+	}
 	if err := h.activateProduct.Execute(ctx, appReq); err != nil {
 		return nil, mapDomainErrorToGRPC(err)
 	}
@@ -143,7 +147,10 @@ func (h *Handler) DeactivateProduct(ctx context.Context, req *pb.DeactivateProdu
 		return nil, status.Error(codes.InvalidArgument, "product_id is required")
 	}
 
-	appReq := &deactivate_product.Request{ProductID: req.ProductId}
+	appReq := &deactivate_product.Request{
+		ProductID: req.ProductId,
+		Version:   req.GetVersion(), // Optional version for optimistic locking
+	}
 	if err := h.deactivateProduct.Execute(ctx, appReq); err != nil {
 		return nil, mapDomainErrorToGRPC(err)
 	}
@@ -161,7 +168,8 @@ func (h *Handler) ApplyDiscount(ctx context.Context, req *pb.ApplyDiscountReques
 	// 2. Map proto → application request
 	appReq := &apply_discount.Request{
 		ProductID:       req.ProductId,
-		DiscountPercent: req.DiscountPercent,
+		Version:         req.GetVersion(),    // Optional version for optimistic locking
+		DiscountPercent: req.DiscountPercent, // Now float64
 		StartDate:       req.StartDate.AsTime(),
 		EndDate:         req.EndDate.AsTime(),
 	}
@@ -181,7 +189,10 @@ func (h *Handler) RemoveDiscount(ctx context.Context, req *pb.RemoveDiscountRequ
 		return nil, status.Error(codes.InvalidArgument, "product_id is required")
 	}
 
-	appReq := &remove_discount.Request{ProductID: req.ProductId}
+	appReq := &remove_discount.Request{
+		ProductID: req.ProductId,
+		Version:   req.GetVersion(), // Optional version for optimistic locking
+	}
 	if err := h.removeDiscount.Execute(ctx, appReq); err != nil {
 		return nil, mapDomainErrorToGRPC(err)
 	}
@@ -195,7 +206,10 @@ func (h *Handler) ArchiveProduct(ctx context.Context, req *pb.ArchiveProductRequ
 		return nil, status.Error(codes.InvalidArgument, "product_id is required")
 	}
 
-	appReq := &archive_product.Request{ProductID: req.ProductId}
+	appReq := &archive_product.Request{
+		ProductID: req.ProductId,
+		Version:   req.GetVersion(), // Optional version for optimistic locking
+	}
 	if err := h.archiveProduct.Execute(ctx, appReq); err != nil {
 		return nil, mapDomainErrorToGRPC(err)
 	}

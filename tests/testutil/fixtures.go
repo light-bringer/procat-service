@@ -42,7 +42,7 @@ func CreateTestProduct(t *testing.T, client *spanner.Client, name string) string
 }
 
 // CreateTestProductWithDiscount creates a test product with an active discount.
-func CreateTestProductWithDiscount(t *testing.T, client *spanner.Client, name string, discountPercent int64) string {
+func CreateTestProductWithDiscount(t *testing.T, client *spanner.Client, name string, discountPercent float64) string {
 	t.Helper()
 
 	ctx := context.Background()
@@ -57,7 +57,7 @@ func CreateTestProductWithDiscount(t *testing.T, client *spanner.Client, name st
 		Category:             "electronics",
 		BasePriceNumerator:   10000,
 		BasePriceDenominator: 100,
-		DiscountPercent:      spanner.NullInt64{Int64: discountPercent, Valid: true},
+		DiscountPercent:      spanner.NullFloat64{Float64: discountPercent, Valid: true}, // Changed to NullFloat64
 		DiscountStartDate:    spanner.NullTime{Time: now.Add(-1 * time.Hour), Valid: true},
 		DiscountEndDate:      spanner.NullTime{Time: now.Add(24 * time.Hour), Valid: true},
 		Status:               "active",
