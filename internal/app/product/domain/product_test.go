@@ -48,6 +48,39 @@ func TestNewProduct(t *testing.T) {
 	})
 }
 
+func TestProduct_SetDescription(t *testing.T) {
+	price, _ := NewMoney(100, 1)
+	now := time.Now().UTC()
+	clk := clock.NewMockClock(now)
+
+	t.Run("empty description is allowed", func(t *testing.T) {
+		p, _ := NewProduct("id-1", "Test Product", "Original Description", "electronics", price, now, clk)
+
+		err := p.SetDescription("")
+		require.NoError(t, err)
+		assert.Equal(t, "", p.Description())
+		assert.True(t, p.Changes().Dirty(FieldDescription))
+	})
+
+	t.Run("updating description marks field as dirty", func(t *testing.T) {
+		p, _ := NewProduct("id-2", "Test Product", "Original", "electronics", price, now, clk)
+		p.Changes().Clear() // Clear initial dirty state
+
+		err := p.SetDescription("New Description")
+		require.NoError(t, err)
+		assert.Equal(t, "New Description", p.Description())
+		assert.True(t, p.Changes().Dirty(FieldDescription))
+	})
+
+	t.Run("cannot update description on archived product", func(t *testing.T) {
+		p, _ := NewProduct("id-3", "Test Product", "Description", "electronics", price, now, clk)
+		p.Archive(now)
+
+		err := p.SetDescription("New Description")
+		assert.ErrorIs(t, err, ErrCannotModifyArchived)
+	})
+}
+
 func TestProduct_Activate(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()
