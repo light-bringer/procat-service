@@ -181,7 +181,7 @@ func CreateTestOutboxEvent(t *testing.T, client *spanner.Client, eventType strin
 		EventID:     eventID,
 		EventType:   eventType,
 		AggregateID: aggregateID,
-		Payload:     `{"test": "data"}`,
+		Payload:     spanner.NullJSON{Value: `{"test": "data"}`, Valid: true},
 		Status:      m_outbox.StatusPending,
 		RetryCount:  0,
 	}

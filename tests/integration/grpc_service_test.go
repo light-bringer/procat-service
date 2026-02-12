@@ -18,6 +18,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
+	"github.com/light-bringer/procat-service/internal/app/product/queries/list_events"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
 	"github.com/light-bringer/procat-service/internal/app/product/repo"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
@@ -50,7 +51,7 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 	// Create repositories
 	productRepo := repo.NewProductRepo(client)
 	outboxRepo := repo.NewOutboxRepo(client)
-	readModel := repo.NewReadModel(client)
+	readModel := repo.NewReadModel(client, clk)
 
 	// Create use cases
 	createProductUC := create_product.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -64,6 +65,8 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 	// Create queries
 	getProductQ := get_product.NewQuery(readModel)
 	listProductsQ := list_products.NewQuery(readModel)
+	eventsReadModel := repo.NewEventsReadModel(client)
+	listEventsQ := list_events.NewQuery(eventsReadModel)
 
 	// Create handler
 	handler := product.NewHandler(
@@ -76,6 +79,7 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 		archiveProductUC,
 		getProductQ,
 		listProductsQ,
+		listEventsQ,
 	)
 
 	// Setup in-memory gRPC server

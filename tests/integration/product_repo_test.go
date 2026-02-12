@@ -13,6 +13,7 @@ import (
 
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/app/product/repo"
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/tests/testutil"
 )
 
@@ -26,7 +27,8 @@ func TestProductRepository_InsertMut(t *testing.T) {
 	// Create a new product
 	price, _ := domain.NewMoney(10000, 100) // $100.00
 	now := time.Now()
-	product, err := domain.NewProduct("test-id-1", "Test Product", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	product, err := domain.NewProduct("test-id-1", "Test Product", "Description", "electronics", price, now, clk)
 	require.NoError(t, err)
 
 	// Get mutation and apply it
@@ -57,7 +59,8 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	// Create and insert a product
 	price, _ := domain.NewMoney(10000, 100)
 	now := time.Now()
-	product, _ := domain.NewProduct("test-id-2", "Original Name", "Description", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	product, _ := domain.NewProduct("test-id-2", "Original Name", "Description", "electronics", price, now, clk)
 
 	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
 	require.NoError(t, err)
@@ -97,7 +100,8 @@ func TestProductRepository_UpdateMut_OnlyDirtyFields(t *testing.T) {
 	// Create a product
 	price, _ := domain.NewMoney(10000, 100)
 	now := time.Now()
-	product, _ := domain.NewProduct("test-id-3", "Test", "Desc", "electronics", price, now)
+	clk := clock.NewMockClock(now)
+	product, _ := domain.NewProduct("test-id-3", "Test", "Desc", "electronics", price, now, clk)
 	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
 	require.NoError(t, err)
 
