@@ -79,6 +79,12 @@ func (d *Discount) IsValidAt(t time.Time) bool {
 	return !t.Before(d.startDate) && !t.After(d.endDate)
 }
 
+// Multiplier returns the cached discount multiplier (percentage/100).
+// Exposed for use by domain services.
+func (d *Discount) Multiplier() *big.Rat {
+	return d.discountMultiplier
+}
+
 // Apply applies the discount to a price and returns the discounted price.
 // Formula: discountedPrice = price - (price * percentage / 100)
 // Uses cached discount multiplier for performance.
