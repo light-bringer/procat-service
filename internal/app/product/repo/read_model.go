@@ -3,14 +3,17 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
 
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/models/m_product"
+	"github.com/light-bringer/procat-service/internal/pkg/query"
 )
 
 // ReadModelImpl implements ReadModel for Spanner.
@@ -42,7 +45,7 @@ func (rm *ReadModelImpl) GetProductByID(ctx context.Context, productID string) (
 		m_product.UpdatedAt,
 	})
 	if err != nil {
-		if err == iterator.Done {
+		if spanner.ErrCode(err) == codes.NotFound {
 			return nil, domain.ErrProductNotFound
 		}
 		return nil, fmt.Errorf("failed to read product: %w", err)
@@ -58,27 +61,37 @@ func (rm *ReadModelImpl) GetProductByID(ctx context.Context, productID string) (
 
 // ListProducts retrieves a paginated list of products with filtering.
 func (rm *ReadModelImpl) ListProducts(ctx context.Context, filter *contracts.ListFilter) (*contracts.ListResult, error) {
-	// Build query based on filter
-	query := "SELECT " +
-		"product_id, name, description, category, " +
-		"base_price_numerator, base_price_denominator, " +
-		"discount_percent, discount_start_date, discount_end_date, " +
-		"status, created_at, updated_at " +
-		"FROM products WHERE 1=1"
+	offset, err := parsePageToken(filter.PageToken)
+	if err != nil {
+		return nil, err
+	}
 
-	params := make(map[string]interface{})
+	// Build query using query builder
+	builder := query.From(m_product.TableName).
+		Select(
+			m_product.ProductID,
+			m_product.Name,
+			m_product.Description,
+			m_product.Category,
+			m_product.BasePriceNumerator,
+			m_product.BasePriceDenominator,
+			m_product.DiscountPercent,
+			m_product.DiscountStartDate,
+			m_product.DiscountEndDate,
+			m_product.Status,
+			m_product.CreatedAt,
+			m_product.UpdatedAt,
+		).
+		OrderBy(m_product.CreatedAt, query.Desc)
 
+	// Add filters
 	if filter.Category != "" {
-		query += " AND category = @category"
-		params["category"] = filter.Category
+		builder = builder.Where(query.Eq(m_product.Category, filter.Category))
 	}
 
 	if filter.Status != "" {
-		query += " AND status = @status"
-		params["status"] = filter.Status
+		builder = builder.Where(query.Eq(m_product.Status, filter.Status))
 	}
-
-	query += " ORDER BY created_at DESC"
 
 	// Apply pagination
 	pageSize := filter.PageSize
@@ -89,20 +102,16 @@ func (rm *ReadModelImpl) ListProducts(ctx context.Context, filter *contracts.Lis
 		pageSize = 100 // Max page size
 	}
 
-	query += " LIMIT @limit"
-	params["limit"] = int64(pageSize)
+	builder = builder.Limit(int64(pageSize + 1)).Offset(int64(offset)) // Fetch one extra row to compute next page token.
 
 	// Execute query
-	stmt := spanner.Statement{
-		SQL:    query,
-		Params: params,
-	}
+	stmt := builder.Build()
 
 	iter := rm.client.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
 	now := time.Now()
-	products := make([]*contracts.ProductDTO, 0, pageSize)
+	products := make([]*contracts.ProductDTO, 0, pageSize+1)
 
 	for {
 		row, err := iter.Next()
@@ -126,13 +135,56 @@ func (rm *ReadModelImpl) ListProducts(ctx context.Context, filter *contracts.Lis
 		products = append(products, dto)
 	}
 
-	// For simplicity, not implementing cursor-based pagination
-	// In production, you'd use the last product's created_at as a cursor
+	nextPageToken := ""
+	if len(products) > pageSize {
+		products = products[:pageSize]
+		nextPageToken = strconv.Itoa(offset + pageSize)
+	}
+
+	totalCount, err := rm.countProducts(ctx, builder)
+	if err != nil {
+		return nil, err
+	}
+
 	return &contracts.ListResult{
 		Products:      products,
-		NextPageToken: "",
-		TotalCount:    int64(len(products)),
+		NextPageToken: nextPageToken,
+		TotalCount:    totalCount,
 	}, nil
+}
+
+func parsePageToken(token string) (int, error) {
+	if token == "" {
+		return 0, nil
+	}
+
+	offset, err := strconv.Atoi(token)
+	if err != nil {
+		return 0, fmt.Errorf("invalid page token: %w", err)
+	}
+	if offset < 0 {
+		return 0, fmt.Errorf("invalid page token: offset cannot be negative")
+	}
+	return offset, nil
+}
+
+func (rm *ReadModelImpl) countProducts(ctx context.Context, builder *query.Builder) (int64, error) {
+	stmt := builder.Count().Build()
+
+	iter := rm.client.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if err != nil {
+		return 0, fmt.Errorf("failed to count products: %w", err)
+	}
+
+	var total int64
+	if err := row.Columns(&total); err != nil {
+		return 0, fmt.Errorf("failed to parse product count: %w", err)
+	}
+
+	return total, nil
 }
 
 // dataToDTO converts database Data to a ProductDTO.

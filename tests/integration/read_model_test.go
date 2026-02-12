@@ -81,10 +81,19 @@ func TestReadModel_ListProducts(t *testing.T) {
 			PageSize: 1,
 		}
 
-		result, err := readModel.ListProducts(ctx, filter)
+		firstPage, err := readModel.ListProducts(ctx, filter)
 		require.NoError(t, err)
+		assert.Len(t, firstPage.Products, 1)
+		assert.NotEmpty(t, firstPage.NextPageToken)
 
-		assert.Len(t, result.Products, 1)
+		secondPage, err := readModel.ListProducts(ctx, &contracts.ListFilter{
+			PageSize:  1,
+			PageToken: firstPage.NextPageToken,
+		})
+		require.NoError(t, err)
+		assert.Len(t, secondPage.Products, 1)
+		assert.Empty(t, secondPage.NextPageToken)
+		assert.NotEqual(t, firstPage.Products[0].ProductID, secondPage.Products[0].ProductID)
 	})
 
 	t.Run("filter by category", func(t *testing.T) {

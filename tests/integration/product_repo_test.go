@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -32,7 +33,7 @@ func TestProductRepository_InsertMut(t *testing.T) {
 	mutation := repository.InsertMut(product)
 	require.NotNil(t, mutation)
 
-	_, err = client.Apply(ctx, []*mutation)
+	_, err = client.Apply(ctx, []*spanner.Mutation{mutation})
 	require.NoError(t, err)
 
 	// Verify product was inserted
@@ -58,7 +59,7 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	now := time.Now()
 	product, _ := domain.NewProduct("test-id-2", "Original Name", "Description", "electronics", price, now)
 
-	_, err := client.Apply(ctx, []*repository.InsertMut(product))
+	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
 	require.NoError(t, err)
 
 	// Retrieve and update
@@ -75,7 +76,7 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	updateMut := repository.UpdateMut(retrieved)
 	require.NotNil(t, updateMut)
 
-	_, err = client.Apply(ctx, []*updateMut)
+	_, err = client.Apply(ctx, []*spanner.Mutation{updateMut})
 	require.NoError(t, err)
 
 	// Verify updates persisted
@@ -97,7 +98,7 @@ func TestProductRepository_UpdateMut_OnlyDirtyFields(t *testing.T) {
 	price, _ := domain.NewMoney(10000, 100)
 	now := time.Now()
 	product, _ := domain.NewProduct("test-id-3", "Test", "Desc", "electronics", price, now)
-	_, err := client.Apply(ctx, []*repository.InsertMut(product))
+	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
 	require.NoError(t, err)
 
 	// Retrieve without making changes

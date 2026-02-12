@@ -3,8 +3,10 @@
 package integration
 
 import (
+	"context"
 	"testing"
 
+	"cloud.google.com/go/spanner"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -35,8 +37,8 @@ func TestOutboxRepository_InsertMut(t *testing.T) {
 	require.NotNil(t, mutation)
 
 	// Apply mutation
-	ctx := testutil.SetupSpannerTest(t)
-	_, err := client.Apply(ctx, []*mutation)
+	ctx := context.Background()
+	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
 	require.NoError(t, err)
 
 	// Verify event was inserted
@@ -64,7 +66,7 @@ func TestOutboxRepository_MultipleEvents(t *testing.T) {
 	client, cleanup := testutil.SetupSpannerTest(t)
 	defer cleanup()
 
-	ctx := testutil.SetupSpannerTest(t)
+	ctx := context.Background()
 	repository := repo.NewOutboxRepo(client)
 
 	// Create multiple events
@@ -74,7 +76,7 @@ func TestOutboxRepository_MultipleEvents(t *testing.T) {
 		&domain.DiscountAppliedEvent{ProductID: "p1"},
 	}
 
-	mutations := make([]*mutation, 0)
+	mutations := make([]*spanner.Mutation, 0)
 	for _, event := range events {
 		outboxEvent := repository.EnrichEvent(event, `{}`)
 		mutations = append(mutations, repository.InsertMut(outboxEvent))

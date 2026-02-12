@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"cloud.google.com/go/spanner"
+	database "cloud.google.com/go/spanner/admin/database/apiv1"
+	adminpb "cloud.google.com/go/spanner/admin/database/apiv1/databasepb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,10 +56,10 @@ func CleanDatabase(t *testing.T, client *spanner.Client) {
 }
 
 // ExecuteDDL executes DDL statements (for schema changes in tests).
-func ExecuteDDL(t *testing.T, ctx context.Context, adminClient *spanner.DatabaseAdminClient, database string, statements []string) {
+func ExecuteDDL(t *testing.T, ctx context.Context, adminClient *database.DatabaseAdminClient, database string, statements []string) {
 	t.Helper()
 
-	op, err := adminClient.UpdateDatabaseDdl(ctx, &spanner.UpdateDatabaseDdlRequest{
+	op, err := adminClient.UpdateDatabaseDdl(ctx, &adminpb.UpdateDatabaseDdlRequest{
 		Database:   database,
 		Statements: statements,
 	})

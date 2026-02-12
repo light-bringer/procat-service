@@ -2,14 +2,18 @@ package e2e
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
+	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
+	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/archive_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/tests/testutil"
 )
 
@@ -68,7 +72,7 @@ func TestProductActivationDeactivation(t *testing.T) {
 	testutil.AssertOutboxEvent(t, services.Client, "product.activated")
 
 	// Deactivate product
-	err = services.DeactivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
+	err = services.DeactivateProduct.Execute(ctx(), &deactivate_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
 	// Verify status changed back
@@ -125,7 +129,7 @@ func TestProductArchiving(t *testing.T) {
 	require.NoError(t, err)
 
 	// Archive product
-	err = services.ArchiveProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
+	err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
 	// Verify status changed to archived

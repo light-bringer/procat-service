@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
 
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
@@ -110,7 +110,7 @@ func (r *ProductRepo) GetByID(ctx context.Context, productID string) (*domain.Pr
 		m_product.ArchivedAt,
 	})
 	if err != nil {
-		if err == iterator.Done {
+		if spanner.ErrCode(err) == codes.NotFound {
 			return nil, domain.ErrProductNotFound
 		}
 		return nil, fmt.Errorf("failed to read product: %w", err)
@@ -128,7 +128,7 @@ func (r *ProductRepo) GetByID(ctx context.Context, productID string) (*domain.Pr
 func (r *ProductRepo) Exists(ctx context.Context, productID string) (bool, error) {
 	row, err := r.client.Single().ReadRow(ctx, m_product.TableName, spanner.Key{productID}, []string{m_product.ProductID})
 	if err != nil {
-		if err == iterator.Done {
+		if spanner.ErrCode(err) == codes.NotFound {
 			return false, nil
 		}
 		return false, fmt.Errorf("failed to check product existence: %w", err)
