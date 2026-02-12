@@ -75,7 +75,7 @@ func TestProduct_Deactivate(t *testing.T) {
 
 func TestProduct_ApplyDiscount(t *testing.T) {
 	price, _ := NewMoney(100, 1)
-	now := time.Now()
+	now := time.Now().UTC()
 	clk := clock.NewMockClock(now)
 	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 	p.Activate(now)
@@ -106,7 +106,7 @@ func TestProduct_ApplyDiscount(t *testing.T) {
 
 func TestProduct_CalculateEffectivePrice(t *testing.T) {
 	price, _ := NewMoney(100, 1)
-	now := time.Now()
+	now := time.Now().UTC()
 	clk := clock.NewMockClock(now)
 	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 
@@ -151,7 +151,7 @@ func TestProduct_Archive(t *testing.T) {
 
 func TestProduct_CannotModifyArchived(t *testing.T) {
 	price, _ := NewMoney(100, 1)
-	now := time.Now()
+	now := time.Now().UTC()
 	clk := clock.NewMockClock(now)
 	p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
 	p.Archive(now)
@@ -169,7 +169,7 @@ func TestProduct_CannotModifyArchived(t *testing.T) {
 
 func TestProduct_HasDiscount(t *testing.T) {
 	price, _ := NewMoney(100, 1)
-	now := time.Now()
+	now := time.Now().UTC()
 	clk := clock.NewMockClock(now)
 
 	t.Run("returns false when no discount", func(t *testing.T) {
@@ -188,7 +188,7 @@ func TestProduct_HasDiscount(t *testing.T) {
 
 func TestProduct_DiscountCopy(t *testing.T) {
 	price, _ := NewMoney(100, 1)
-	now := time.Now()
+	now := time.Now().UTC()
 	clk := clock.NewMockClock(now)
 
 	t.Run("returns nil when no discount", func(t *testing.T) {
