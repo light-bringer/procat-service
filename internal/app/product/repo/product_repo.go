@@ -11,6 +11,7 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/models/m_product"
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 )
 
 // ProductRepo implements ProductRepository for Spanner.
@@ -88,6 +89,9 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	if len(updates) == 0 {
 		return nil
 	}
+
+	// Always update the updated_at timestamp when any field changes
+	updates[m_product.UpdatedAt] = time.Now()
 
 	return r.model.UpdateMut(product.ID(), updates)
 }
@@ -189,6 +193,9 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 		archivedAt = &data.ArchivedAt.Time
 	}
 
+	// Use real clock for reconstructed products
+	clk := clock.NewRealClock()
+
 	return domain.ReconstructProduct(
 		data.ProductID,
 		data.Name,
@@ -200,5 +207,6 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 		data.CreatedAt,
 		data.UpdatedAt,
 		archivedAt,
+		clk,
 	), nil
 }
