@@ -238,6 +238,31 @@ func (p *Product) SetCategory(category string) error {
 	return nil
 }
 
+// SetBasePrice updates the product's base price.
+// This emits a BasePriceChangedEvent to track price history.
+func (p *Product) SetBasePrice(newPrice *Money) error {
+	if err := p.checkNotArchived(); err != nil {
+		return err
+	}
+
+	if newPrice.IsNegative() || newPrice.IsZero() {
+		return ErrInvalidPrice
+	}
+
+	oldPrice := p.basePrice.Copy()
+	p.basePrice = newPrice.Copy()
+	p.changes.MarkDirty(FieldBasePrice)
+
+	p.recordEvent(&BasePriceChangedEvent{
+		ProductID: p.id,
+		OldPrice:  oldPrice,
+		NewPrice:  newPrice.Copy(),
+		ChangedAt: p.clock.Now(),
+	})
+
+	return nil
+}
+
 // ApplyDiscount applies a discount to the product.
 func (p *Product) ApplyDiscount(discount *Discount, now time.Time) error {
 	if err := p.checkNotArchived(); err != nil {

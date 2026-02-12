@@ -81,6 +81,69 @@ func TestProduct_SetDescription(t *testing.T) {
 	})
 }
 
+func TestProduct_SetBasePrice(t *testing.T) {
+	originalPrice, _ := NewMoney(100, 1)
+	now := time.Now().UTC()
+	clk := clock.NewMockClock(now)
+
+	t.Run("successfully update base price", func(t *testing.T) {
+		p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", originalPrice, now, clk)
+		p.Changes().Clear() // Clear initial state
+
+		newPrice, _ := NewMoney(150, 1)
+		err := p.SetBasePrice(newPrice)
+		require.NoError(t, err)
+
+		// Verify price was updated
+		updatedPrice := p.BasePrice()
+		priceVal, _ := updatedPrice.Float64()
+		assert.Equal(t, 150.0, priceVal)
+
+		// Verify field marked as dirty
+		assert.True(t, p.Changes().Dirty(FieldBasePrice))
+
+		// Verify BasePriceChangedEvent was emitted
+		events := p.DomainEvents()
+		var foundPriceEvent bool
+		for _, event := range events {
+			if event.EventType() == "product.price.changed" {
+				foundPriceEvent = true
+				priceEvent := event.(*BasePriceChangedEvent)
+				oldVal, _ := priceEvent.OldPrice.Float64()
+				newVal, _ := priceEvent.NewPrice.Float64()
+				assert.Equal(t, 100.0, oldVal)
+				assert.Equal(t, 150.0, newVal)
+			}
+		}
+		assert.True(t, foundPriceEvent, "BasePriceChangedEvent should be emitted")
+	})
+
+	t.Run("negative price returns error", func(t *testing.T) {
+		p, _ := NewProduct("id-2", "Test Product", "Description", "electronics", originalPrice, now, clk)
+
+		negativePrice, _ := NewMoney(-50, 1)
+		err := p.SetBasePrice(negativePrice)
+		assert.ErrorIs(t, err, ErrInvalidPrice)
+	})
+
+	t.Run("zero price returns error", func(t *testing.T) {
+		p, _ := NewProduct("id-3", "Test Product", "Description", "electronics", originalPrice, now, clk)
+
+		zeroPrice, _ := NewMoney(0, 1)
+		err := p.SetBasePrice(zeroPrice)
+		assert.ErrorIs(t, err, ErrInvalidPrice)
+	})
+
+	t.Run("cannot update price on archived product", func(t *testing.T) {
+		p, _ := NewProduct("id-4", "Test Product", "Description", "electronics", originalPrice, now, clk)
+		p.Archive(now)
+
+		newPrice, _ := NewMoney(150, 1)
+		err := p.SetBasePrice(newPrice)
+		assert.ErrorIs(t, err, ErrCannotModifyArchived)
+	})
+}
+
 func TestProduct_Activate(t *testing.T) {
 	price, _ := NewMoney(100, 1)
 	now := time.Now()

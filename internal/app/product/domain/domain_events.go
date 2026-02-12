@@ -44,6 +44,22 @@ func (e *ProductUpdatedEvent) AggregateID() string {
 	return e.ProductID
 }
 
+// BasePriceChangedEvent is emitted when a product's base price is changed.
+type BasePriceChangedEvent struct {
+	ProductID string
+	OldPrice  *Money
+	NewPrice  *Money
+	ChangedAt time.Time
+}
+
+func (e *BasePriceChangedEvent) EventType() string {
+	return "product.price.changed"
+}
+
+func (e *BasePriceChangedEvent) AggregateID() string {
+	return e.ProductID
+}
+
 // ProductActivatedEvent is emitted when a product is activated.
 type ProductActivatedEvent struct {
 	ProductID string
