@@ -3,6 +3,7 @@ package committer
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cloud.google.com/go/spanner"
 )
@@ -81,5 +82,51 @@ func (c *Committer) ApplyWithReadWriteTransaction(ctx context.Context, fn func(c
 	if err != nil {
 		return fmt.Errorf("transaction failed: %w", err)
 	}
+	return nil
+}
+
+// ApplyWithVersionCheck executes the CommitPlan with optimistic locking.
+// It verifies the version hasn't changed before applying mutations.
+// Parameters:
+//   - productID: The ID of the product being updated
+//   - expectedVersion: The version the aggregate had when it was loaded
+//   - plan: The CommitPlan containing mutations to apply
+//
+// Returns ErrOptimisticLockConflict if the version in the database doesn't match expectedVersion.
+func (c *Committer) ApplyWithVersionCheck(ctx context.Context, productID string, expectedVersion int64, plan *CommitPlan) error {
+	if plan.IsEmpty() {
+		return nil // Nothing to commit
+	}
+
+	_, err := c.client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Read current version from database
+		row, err := txn.ReadRow(ctx, "products", spanner.Key{productID}, []string{"version"})
+		if err != nil {
+			return fmt.Errorf("failed to read product version: %w", err)
+		}
+
+		var currentVersion int64
+		if err := row.Column(0, &currentVersion); err != nil {
+			return fmt.Errorf("failed to parse version: %w", err)
+		}
+
+		// Check if version matches (optimistic lock)
+		if currentVersion != expectedVersion {
+			return fmt.Errorf("version mismatch: expected %d, got %d (concurrent modification detected)", expectedVersion, currentVersion)
+		}
+
+		// Version matches, apply mutations
+		return txn.BufferWrite(plan.Mutations())
+	})
+
+	if err != nil {
+		// Check if it's a version mismatch error
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "version mismatch") || strings.Contains(errMsg, "concurrent modification") {
+			return fmt.Errorf("optimistic lock conflict: %w", err)
+		}
+		return fmt.Errorf("failed to apply commit plan with version check: %w", err)
+	}
+
 	return nil
 }

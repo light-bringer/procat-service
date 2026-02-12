@@ -5,11 +5,12 @@ import "errors"
 // Domain errors as sentinel values
 var (
 	// Product errors
-	ErrProductNotFound   = errors.New("product not found")
-	ErrProductNotActive  = errors.New("product is not active")
-	ErrEmptyName         = errors.New("product name cannot be empty")
-	ErrInvalidPrice      = errors.New("product price must be positive")
-	ErrInvalidCategory   = errors.New("product category cannot be empty")
+	ErrProductNotFound        = errors.New("product not found")
+	ErrProductNotActive       = errors.New("product is not active")
+	ErrEmptyName              = errors.New("product name cannot be empty")
+	ErrInvalidPrice           = errors.New("product price must be positive")
+	ErrInvalidCategory        = errors.New("product category cannot be empty")
+	ErrOptimisticLockConflict = errors.New("product was modified by another transaction")
 
 	// Discount errors
 	ErrInvalidDiscountPeriod   = errors.New("discount end date must be after start date")
@@ -18,8 +19,8 @@ var (
 	ErrCannotApplyToInactive   = errors.New("cannot apply discount to inactive product")
 
 	// Status errors
-	ErrAlreadyActive   = errors.New("product is already active")
-	ErrAlreadyInactive = errors.New("product is already inactive")
-	ErrAlreadyArchived = errors.New("product is already archived")
+	ErrAlreadyActive        = errors.New("product is already active")
+	ErrAlreadyInactive      = errors.New("product is already inactive")
+	ErrAlreadyArchived      = errors.New("product is already archived")
 	ErrCannotModifyArchived = errors.New("cannot modify archived product")
 )

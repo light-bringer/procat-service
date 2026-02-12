@@ -15,6 +15,7 @@ const (
 	DiscountStartDate      = "discount_start_date"
 	DiscountEndDate        = "discount_end_date"
 	Status                 = "status"
+	Version                = "version"
 	CreatedAt              = "created_at"
 	UpdatedAt              = "updated_at"
 	ArchivedAt             = "archived_at"

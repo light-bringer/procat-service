@@ -18,6 +18,7 @@ type Data struct {
 	DiscountStartDate    spanner.NullTime  `spanner:"discount_start_date"`
 	DiscountEndDate      spanner.NullTime  `spanner:"discount_end_date"`
 	Status               string            `spanner:"status"`
+	Version              int64             `spanner:"version"`
 	CreatedAt            time.Time         `spanner:"created_at"`
 	UpdatedAt            time.Time         `spanner:"updated_at"`
 	ArchivedAt           spanner.NullTime  `spanner:"archived_at"`

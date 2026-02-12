@@ -95,6 +95,9 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	// Always update the updated_at timestamp when any field changes
 	updates[m_product.UpdatedAt] = r.clock.Now()
 
+	// Increment version for optimistic locking
+	updates[m_product.Version] = product.Version() + 1
+
 	return r.model.UpdateMut(product.ID(), updates)
 }
 
@@ -111,6 +114,7 @@ func (r *ProductRepo) GetByID(ctx context.Context, productID string) (*domain.Pr
 		m_product.DiscountStartDate,
 		m_product.DiscountEndDate,
 		m_product.Status,
+		m_product.Version,
 		m_product.CreatedAt,
 		m_product.UpdatedAt,
 		m_product.ArchivedAt,
@@ -152,6 +156,7 @@ func (r *ProductRepo) domainToData(product *domain.Product) *m_product.Data {
 		BasePriceNumerator:   product.BasePrice().Numerator(),
 		BasePriceDenominator: product.BasePrice().Denominator(),
 		Status:               string(product.Status()),
+		Version:              product.Version(),
 		CreatedAt:            product.CreatedAt(),
 		UpdatedAt:            product.UpdatedAt(),
 	}
@@ -204,6 +209,7 @@ func (r *ProductRepo) dataToDomain(data *m_product.Data) (*domain.Product, error
 		basePrice,
 		discount,
 		domain.ProductStatus(data.Status),
+		data.Version,
 		data.CreatedAt,
 		data.UpdatedAt,
 		archivedAt,

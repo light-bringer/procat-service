@@ -14,6 +14,7 @@ const (
 	FieldBasePrice   = "base_price"
 	FieldDiscount    = "discount"
 	FieldStatus      = "status"
+	FieldVersion     = "version"
 	FieldArchivedAt  = "archived_at"
 )
 
@@ -36,6 +37,7 @@ type Product struct {
 	basePrice   *Money
 	discount    *Discount
 	status      ProductStatus
+	version     int64
 	createdAt   time.Time
 	updatedAt   time.Time
 	archivedAt  *time.Time
@@ -71,6 +73,7 @@ func NewProduct(id, name, description, category string, basePrice *Money, now ti
 		category:    category,
 		basePrice:   basePrice.Copy(),
 		status:      StatusInactive,
+		version:     0,
 		createdAt:   now,
 		updatedAt:   now,
 		clock:       clk,
@@ -105,6 +108,7 @@ func ReconstructProduct(
 	basePrice *Money,
 	discount *Discount,
 	status ProductStatus,
+	version int64,
 	createdAt, updatedAt time.Time,
 	archivedAt *time.Time,
 	clk clock.Clock,
@@ -117,6 +121,7 @@ func ReconstructProduct(
 		basePrice:   basePrice,
 		discount:    discount,
 		status:      status,
+		version:     version,
 		createdAt:   createdAt,
 		updatedAt:   updatedAt,
 		archivedAt:  archivedAt,
@@ -134,6 +139,7 @@ func (p *Product) Category() string           { return p.category }
 func (p *Product) BasePrice() *Money          { return p.basePrice.Copy() }
 func (p *Product) Discount() *Discount        { return p.discount }
 func (p *Product) Status() ProductStatus      { return p.status }
+func (p *Product) Version() int64             { return p.version }
 func (p *Product) CreatedAt() time.Time       { return p.createdAt }
 func (p *Product) UpdatedAt() time.Time       { return p.updatedAt }
 func (p *Product) ArchivedAt() *time.Time     { return p.archivedAt }
