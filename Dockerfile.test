@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for testing
 
 # Base test image with all dependencies
-FROM golang:1.25-alpine AS test-base
+FROM golang:1.26-alpine AS test-base
 
 # Install required packages including CGO dependencies for race detector
 RUN apk add --no-cache \
