@@ -6,6 +6,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 
+	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
 	"github.com/light-bringer/procat-service/internal/app/product/repo"
@@ -37,8 +38,10 @@ type Services struct {
 	ListProducts *list_products.Query
 
 	// Infrastructure
-	Clock  clock.Clock
-	Client *spanner.Client
+	Clock       clock.Clock
+	Client      *spanner.Client
+	ProductRepo contracts.ProductRepository
+	Committer   *committer.Committer
 }
 
 // setupTest initializes all dependencies for E2E testing.
@@ -55,10 +58,11 @@ func setupTest(t *testing.T) (*Services, func()) {
 	// Create repositories
 	productRepo := repo.NewProductRepo(client, clk)
 	outboxRepo := repo.NewOutboxRepo(client)
+	priceHistoryRepo := repo.NewPriceHistoryRepo(client)
 	readModel := repo.NewReadModel(client, clk)
 
 	// Create command use cases
-	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, comm, clk)
+	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	updateProductUseCase := update_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	activateProductUseCase := activate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	deactivateProductUseCase := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -82,6 +86,8 @@ func setupTest(t *testing.T) (*Services, func()) {
 		ListProducts:      listProductsQuery,
 		Clock:             clk,
 		Client:            client,
+		ProductRepo:       productRepo,
+		Committer:         comm,
 	}
 
 	return services, cleanup
@@ -101,10 +107,11 @@ func setupTestWithMockClock(t *testing.T) (*Services, *clock.MockClock, func()) 
 	// Create repositories
 	productRepo := repo.NewProductRepo(client, mockClock)
 	outboxRepo := repo.NewOutboxRepo(client)
+	priceHistoryRepo := repo.NewPriceHistoryRepo(client)
 	readModel := repo.NewReadModel(client, mockClock)
 
 	// Create command use cases with mock clock
-	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
+	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, mockClock)
 	updateProductUseCase := update_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
 	activateProductUseCase := activate_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
 	deactivateProductUseCase := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, mockClock)
@@ -128,6 +135,8 @@ func setupTestWithMockClock(t *testing.T) (*Services, *clock.MockClock, func()) 
 		ListProducts:      listProductsQuery,
 		Clock:             mockClock,
 		Client:            client,
+		ProductRepo:       productRepo,
+		Committer:         comm,
 	}
 
 	return services, mockClock, cleanup

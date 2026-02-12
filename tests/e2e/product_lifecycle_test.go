@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/apply_discount"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/archive_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
@@ -147,6 +149,47 @@ func TestProductArchiving(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived)
+
+	// Verify cannot activate archived product
+	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived)
+
+	// Verify cannot apply discount to archived product
+	err = services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
+		ProductID:       productID,
+		DiscountPercent: 10,
+		StartDate:       time.Now(),
+		EndDate:         time.Now().Add(24 * time.Hour),
+	})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived)
+}
+
+func TestArchiveActiveProduct(t *testing.T) {
+	services, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create and activate product
+	price, _ := domain.NewMoney(10000, 100)
+	productID, err := services.CreateProduct.Execute(ctx(), &create_product.Request{
+		Name:        "Active to Archive",
+		Description: "Test",
+		Category:    "electronics",
+		BasePrice:   price,
+	})
+	require.NoError(t, err)
+
+	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
+	require.NoError(t, err)
+
+	// Archive active product
+	err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	require.NoError(t, err)
+
+	// Verify status
+	dto, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
+	assert.Equal(t, "archived", dto.Status)
 }
 
 func TestBusinessRuleValidations(t *testing.T) {

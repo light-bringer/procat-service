@@ -18,7 +18,7 @@ echo "Database: $TEST_DATABASE_ID"
 echo "Waiting for Spanner emulator..."
 max_attempts=30
 attempt=0
-until curl -s http://${SPANNER_EMULATOR_HOST#*:}/ready > /dev/null 2>&1 || [ $attempt -eq $max_attempts ]; do
+until curl -s http://localhost:19020/v1/projects/${SPANNER_PROJECT_ID}/instances > /dev/null 2>&1 || [ $attempt -eq $max_attempts ]; do
     attempt=$((attempt + 1))
     echo "Attempt $attempt/$max_attempts..."
     sleep 1
@@ -45,16 +45,7 @@ gcloud spanner databases create $TEST_DATABASE_ID \
     --instance=$TEST_INSTANCE_ID \
     --project=$SPANNER_PROJECT_ID 2>/dev/null || echo "Test database already exists"
 
-# Apply migrations
-echo "Applying migrations to test database..."
-for migration in migrations/*.sql; do
-    if [ -f "$migration" ]; then
-        echo "Applying $migration..."
-        gcloud spanner databases ddl update $TEST_DATABASE_ID \
-            --instance=$TEST_INSTANCE_ID \
-            --project=$SPANNER_PROJECT_ID \
-            --ddl-file=$migration 2>/dev/null || echo "Schema already applied or error occurred"
-    fi
-done
+# Migrations are handled by the application migration tool
+echo "Database created successfully. Migrations will be applied by the application."
 
 echo "Test database setup completed!"

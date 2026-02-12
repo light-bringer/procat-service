@@ -48,6 +48,7 @@ func CleanDatabase(t *testing.T, client *spanner.Client) {
 	// Delete all data from tables (order matters due to potential foreign keys)
 	mutations := []*spanner.Mutation{
 		spanner.Delete("outbox_events", spanner.AllKeys()),
+		spanner.Delete("price_history", spanner.AllKeys()),
 		spanner.Delete("products", spanner.AllKeys()),
 	}
 

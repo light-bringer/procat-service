@@ -18,6 +18,6 @@ echo "Dropping test database (if exists)..."
 gcloud spanner databases delete $TEST_DATABASE_ID \
     --instance=$TEST_INSTANCE_ID \
     --project=$SPANNER_PROJECT_ID \
-    --quiet 2>/dev/null || echo "Database doesn't exist or already dropped"
+    --quiet || echo "Database doesn't exist or already dropped"
 
 echo "Test database cleanup completed!"

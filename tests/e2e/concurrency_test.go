@@ -10,16 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
+	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/apply_discount"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
+	"github.com/light-bringer/procat-service/internal/pkg/committer"
 )
 
 // TestConcurrentDiscountApplication tests two goroutines applying different discounts.
 // Expected: One succeeds, one fails with optimistic lock conflict or discount already active.
 func TestConcurrentDiscountApplication(t *testing.T) {
 	ctx := context.Background()
-	suite := setupTestSuite(t)
+	suite, cleanup := setupTest(t)
+	defer cleanup()
 
 	// Create and activate a product
 	basePrice, _ := domain.NewMoney(10000, 100) // $100.00
@@ -30,11 +34,11 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 		BasePrice:   basePrice,
 	}
 
-	productID, err := suite.commands.CreateProduct.Execute(ctx, createReq)
+	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
 
 	// Activate the product first
-	err = suite.commands.ActivateProduct.Execute(ctx, productID)
+	err = suite.ActivateProduct.Execute(ctx, &activate_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
 	now := time.Now().UTC()
@@ -53,19 +57,23 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		req := &apply_discount.Request{
-			ProductID: productID,
-			Discount:  discount1,
+			ProductID:       productID,
+			DiscountPercent: discount1.Percentage(),
+			StartDate:       discount1.StartDate(),
+			EndDate:         discount1.EndDate(),
 		}
-		err1 = suite.commands.ApplyDiscount.Execute(ctx, req)
+		err1 = suite.ApplyDiscount.Execute(ctx, req)
 	}()
 
 	go func() {
 		defer wg.Done()
 		req := &apply_discount.Request{
-			ProductID: productID,
-			Discount:  discount2,
+			ProductID:       productID,
+			DiscountPercent: discount2.Percentage(),
+			StartDate:       discount2.StartDate(),
+			EndDate:         discount2.EndDate(),
 		}
-		err2 = suite.commands.ApplyDiscount.Execute(ctx, req)
+		err2 = suite.ApplyDiscount.Execute(ctx, req)
 	}()
 
 	wg.Wait()
@@ -78,21 +86,22 @@ func TestConcurrentDiscountApplication(t *testing.T) {
 	}
 
 	// The successful discount should be present
-	product, err := suite.queries.GetProduct.Execute(ctx, productID)
+	product, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 	require.NoError(t, err)
-	assert.NotNil(t, product.Discount, "Product should have a discount")
+	assert.NotNil(t, product.DiscountPercent, "Product should have a discount")
 
 	// Verify it's either discount1 or discount2
-	discountPercent := product.Discount.Percentage
+	discountPercent := *product.DiscountPercent
 	assert.True(t, discountPercent == 10 || discountPercent == 20,
-		"Discount should be either 10%% or 20%%, got %d%%", discountPercent)
+		"Discount should be either 10%% or 20%%, got %.2f%%", discountPercent)
 }
 
 // TestConcurrentProductUpdates tests two goroutines updating different fields.
 // Expected: Both should succeed with proper optimistic locking, changes applied sequentially.
 func TestConcurrentProductUpdates(t *testing.T) {
 	ctx := context.Background()
-	suite := setupTestSuite(t)
+	suite, cleanup := setupTest(t)
+	defer cleanup()
 
 	// Create a product
 	basePrice, _ := domain.NewMoney(10000, 100)
@@ -103,7 +112,7 @@ func TestConcurrentProductUpdates(t *testing.T) {
 		BasePrice:   basePrice,
 	}
 
-	productID, err := suite.commands.CreateProduct.Execute(ctx, createReq)
+	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
 
 	// Update different fields concurrently
@@ -118,10 +127,10 @@ func TestConcurrentProductUpdates(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		req := &update_product.Request{
-			ProductID:   productID,
-			Name:        &newName,
+			ProductID: productID,
+			Name:      &newName,
 		}
-		err1 = suite.commands.UpdateProduct.Execute(ctx, req)
+		err1 = suite.UpdateProduct.Execute(ctx, req)
 	}()
 
 	go func() {
@@ -130,7 +139,7 @@ func TestConcurrentProductUpdates(t *testing.T) {
 			ProductID:   productID,
 			Description: &newDescription,
 		}
-		err2 = suite.commands.UpdateProduct.Execute(ctx, req)
+		err2 = suite.UpdateProduct.Execute(ctx, req)
 	}()
 
 	wg.Wait()
@@ -148,7 +157,8 @@ func TestConcurrentProductUpdates(t *testing.T) {
 	assert.GreaterOrEqual(t, successCount, 1, "At least one update should succeed")
 
 	// Read final state
-	product, err := suite.queries.GetProduct.Execute(ctx, productID)
+	// Read final state
+	product, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
 	// If both succeeded (no version conflict), both changes should be present
@@ -163,7 +173,8 @@ func TestConcurrentProductUpdates(t *testing.T) {
 // Expected: Reads should always see consistent state (either old or new, never partial).
 func TestReadDuringWrite(t *testing.T) {
 	ctx := context.Background()
-	suite := setupTestSuite(t)
+	suite, cleanup := setupTest(t)
+	defer cleanup()
 
 	// Create a product
 	basePrice, _ := domain.NewMoney(10000, 100)
@@ -174,25 +185,26 @@ func TestReadDuringWrite(t *testing.T) {
 		BasePrice:   basePrice,
 	}
 
-	productID, err := suite.commands.CreateProduct.Execute(ctx, createReq)
+	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
 
 	// Perform updates while reading concurrently
-	var wg sync.WaitGroup
+	var readerWg sync.WaitGroup
+	var writerWg sync.WaitGroup
 	stopReading := make(chan struct{})
 	inconsistentReads := 0
 	var inconsistentMutex sync.Mutex
 
 	// Reader goroutine
-	wg.Add(1)
+	readerWg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer readerWg.Done()
 		for {
 			select {
 			case <-stopReading:
 				return
 			default:
-				product, err := suite.queries.GetProduct.Execute(ctx, productID)
+				product, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 				if err == nil {
 					// Verify consistency: version should match state
 					// If we can read the product, all fields should be internally consistent
@@ -208,30 +220,32 @@ func TestReadDuringWrite(t *testing.T) {
 	}()
 
 	// Writer goroutine - perform multiple updates
-	wg.Add(1)
+	writerWg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer writerWg.Done()
 		for i := 0; i < 5; i++ {
 			newName := "Updated Name " + string(rune('A'+i))
 			req := &update_product.Request{
 				ProductID: productID,
 				Name:      &newName,
 			}
-			_ = suite.commands.UpdateProduct.Execute(ctx, req)
+			_ = suite.UpdateProduct.Execute(ctx, req)
 			time.Sleep(2 * time.Millisecond)
 		}
 	}()
 
-	// Wait for writes to complete
-	time.Sleep(20 * time.Millisecond)
+	// Wait for writes to complete first
+	writerWg.Wait()
+
+	// Then stop reading
 	close(stopReading)
-	wg.Wait()
+	readerWg.Wait()
 
 	// Verify no inconsistent reads
 	assert.Equal(t, 0, inconsistentReads, "Should never see inconsistent state during reads")
 
 	// Final state should be consistent
-	product, err := suite.queries.GetProduct.Execute(ctx, productID)
+	product, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 	require.NoError(t, err)
 	assert.NotEmpty(t, product.Name)
 	assert.NotEmpty(t, product.Category)
@@ -241,7 +255,8 @@ func TestReadDuringWrite(t *testing.T) {
 // Expected: Updates applied sequentially, all price history recorded correctly.
 func TestConcurrentPriceUpdates(t *testing.T) {
 	ctx := context.Background()
-	suite := setupTestSuite(t)
+	suite, cleanup := setupTest(t)
+	defer cleanup()
 
 	// Create a product
 	basePrice, _ := domain.NewMoney(10000, 100)
@@ -252,7 +267,7 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 		BasePrice:   basePrice,
 	}
 
-	productID, err := suite.commands.CreateProduct.Execute(ctx, createReq)
+	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
 
 	// Attempt multiple concurrent price updates
@@ -267,7 +282,7 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 			newPrice, _ := domain.NewMoney(val, 100)
 
 			// Load product
-			product, err := suite.repo.GetByID(ctx, productID)
+			product, err := suite.ProductRepo.GetByID(ctx, productID)
 			if err != nil {
 				errors[idx] = err
 				return
@@ -281,11 +296,11 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 			}
 
 			// Try to commit with version check
-			plan := suite.committer.NewPlan()
-			if mut := suite.repo.UpdateMut(product); mut != nil {
+			plan := committer.NewPlan()
+			if mut := suite.ProductRepo.UpdateMut(product); mut != nil {
 				plan.Add(mut)
 			}
-			errors[idx] = suite.committer.Apply(ctx, plan)
+			errors[idx] = suite.Committer.Apply(ctx, plan)
 		}(i, priceVal)
 	}
 
@@ -302,11 +317,12 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 	assert.GreaterOrEqual(t, successCount, 1, "At least one price update should succeed")
 
 	// Verify final state is consistent
-	product, err := suite.queries.GetProduct.Execute(ctx, productID)
+	// Verify final state is consistent
+	product, err := suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
 	// Price should be one of the attempted prices
-	finalPrice, _ := product.BasePrice.Float64()
+	finalPrice := product.BasePrice
 	assert.Contains(t, []float64{100.00, 110.00, 120.00, 130.00}, finalPrice,
 		"Final price should be one of the valid prices")
 }
@@ -315,7 +331,8 @@ func TestConcurrentPriceUpdates(t *testing.T) {
 // This test should be run with: go test -race ./tests/e2e/...
 func TestNoDataRaces(t *testing.T) {
 	ctx := context.Background()
-	suite := setupTestSuite(t)
+	suite, cleanup := setupTest(t)
+	defer cleanup()
 
 	// Create a product
 	basePrice, _ := domain.NewMoney(10000, 100)
@@ -326,7 +343,7 @@ func TestNoDataRaces(t *testing.T) {
 		BasePrice:   basePrice,
 	}
 
-	productID, err := suite.commands.CreateProduct.Execute(ctx, createReq)
+	productID, err := suite.CreateProduct.Execute(ctx, createReq)
 	require.NoError(t, err)
 
 	// Perform various operations concurrently
@@ -342,7 +359,7 @@ func TestNoDataRaces(t *testing.T) {
 			switch idx % 3 {
 			case 0:
 				// Read
-				_, _ = suite.queries.GetProduct.Execute(ctx, productID)
+				_, _ = suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 			case 1:
 				// Update
 				newDesc := "Description " + string(rune('A'+idx))
@@ -350,10 +367,10 @@ func TestNoDataRaces(t *testing.T) {
 					ProductID:   productID,
 					Description: &newDesc,
 				}
-				_ = suite.commands.UpdateProduct.Execute(ctx, req)
+				_ = suite.UpdateProduct.Execute(ctx, req)
 			case 2:
 				// Read again
-				_, _ = suite.queries.GetProduct.Execute(ctx, productID)
+				_, _ = suite.GetProduct.Execute(ctx, &get_product.Request{ProductID: productID})
 			}
 		}(i)
 	}

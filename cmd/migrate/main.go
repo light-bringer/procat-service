@@ -198,6 +198,7 @@ func applyMigrations(ctx context.Context) error {
 		migrationName := filepath.Base(file)
 		log.Printf("Applying %s...", migrationName)
 
+
 		content, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed to read migration file %s: %w", file, err)
@@ -205,6 +206,12 @@ func applyMigrations(ctx context.Context) error {
 
 		// Split into individual DDL statements
 		statements := splitDDLStatements(string(content))
+
+		// Skip if migration contains no statements (comments only)
+		if len(statements) == 0 {
+			log.Printf("Skipping %s (no DDL statements, documentation only)", migrationName)
+			continue
+		}
 
 		// Apply DDL statements
 		op, err := adminClient.UpdateDatabaseDdl(ctx, &databasepb.UpdateDatabaseDdlRequest{

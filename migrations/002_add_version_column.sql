@@ -3,4 +3,4 @@
 -- This migration adds a version column to the products table to prevent lost updates
 -- from concurrent modifications. The version is incremented on every update.
 
-ALTER TABLE products ADD COLUMN version INT64 NOT NULL DEFAULT 0;
+ALTER TABLE products ADD COLUMN version INT64 NOT NULL DEFAULT (0);
