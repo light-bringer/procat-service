@@ -192,3 +192,76 @@ func CreateTestOutboxEvent(t *testing.T, client *spanner.Client, eventType strin
 
 	return eventID
 }
+
+// UpdateTestProductName updates a product's name for testing.
+func UpdateTestProductName(t *testing.T, client *spanner.Client, productID string, newName string) {
+	t.Helper()
+
+	ctx := context.Background()
+	model := m_product.NewModel()
+
+	updates := map[string]interface{}{
+		m_product.Name:      newName,
+		m_product.UpdatedAt: time.Now(),
+	}
+
+	mutation := model.UpdateMut(productID, updates)
+	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
+	require.NoError(t, err, "failed to update product name")
+}
+
+// CreateTestProductWithStatus creates a test product with specific status.
+func CreateTestProductWithStatus(t *testing.T, client *spanner.Client, name string, status string) string {
+	t.Helper()
+
+	ctx := context.Background()
+	productID := uuid.New().String()
+	now := time.Now()
+
+	model := m_product.NewModel()
+	data := &m_product.Data{
+		ProductID:            productID,
+		Name:                 name,
+		Description:          "Test product with status",
+		Category:             "electronics",
+		BasePriceNumerator:   10000,
+		BasePriceDenominator: 100,
+		Status:               status,
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+
+	mutation := model.InsertMut(data)
+	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
+	require.NoError(t, err, "failed to create test product with status")
+
+	return productID
+}
+
+// CreateTestProductWithCategory creates a test product in specific category.
+func CreateTestProductWithCategory(t *testing.T, client *spanner.Client, name string, category string) string {
+	t.Helper()
+
+	ctx := context.Background()
+	productID := uuid.New().String()
+	now := time.Now()
+
+	model := m_product.NewModel()
+	data := &m_product.Data{
+		ProductID:            productID,
+		Name:                 name,
+		Description:          "Test product in category",
+		Category:             category,
+		BasePriceNumerator:   10000,
+		BasePriceDenominator: 100,
+		Status:               "inactive",
+		CreatedAt:            now,
+		UpdatedAt:            now,
+	}
+
+	mutation := model.InsertMut(data)
+	_, err := client.Apply(ctx, []*spanner.Mutation{mutation})
+	require.NoError(t, err, "failed to create test product with category")
+
+	return productID
+}
