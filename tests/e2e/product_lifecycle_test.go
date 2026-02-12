@@ -72,8 +72,16 @@ func TestProductActivationDeactivation(t *testing.T) {
 	// Verify activation event
 	testutil.AssertOutboxEvent(t, services.Client, "product.activated")
 
+	// Get current version for deactivation
+	product, err := services.ProductRepo.GetByID(ctx(), productID)
+	require.NoError(t, err)
+	currentVersion := product.Version()
+
 	// Deactivate product
-	err = services.DeactivateProduct.Execute(ctx(), &deactivate_product.Request{ProductID: productID})
+	err = services.DeactivateProduct.Execute(ctx(), &deactivate_product.Request{
+		ProductID: productID,
+		Version:   currentVersion,
+	})
 	require.NoError(t, err)
 
 	// Verify status changed back
@@ -160,8 +168,8 @@ func TestProductArchiving(t *testing.T) {
 	err = services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 		ProductID:       productID,
 		DiscountPercent: 10,
-		StartDate:       time.Now(),
-		EndDate:         time.Now().Add(24 * time.Hour),
+		StartDate:       time.Now().UTC(),
+		EndDate:         time.Now().UTC().Add(24 * time.Hour),
 	})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived)

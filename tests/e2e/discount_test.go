@@ -36,12 +36,18 @@ func TestDiscountApplicationFlow(t *testing.T) {
 	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
 	require.NoError(t, err)
 
+	// Get version after activation
+	product, err := services.ProductRepo.GetByID(ctx(), productID)
+	require.NoError(t, err)
+	currentVersion := product.Version()
+
 	// Apply 20% discount
 	startDate := time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC)
 	endDate := time.Date(2025, 12, 31, 23, 59, 59, 0, time.UTC)
 
 	err = services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 		ProductID:       productID,
+		Version:         currentVersion,
 		DiscountPercent: 20,
 		StartDate:       startDate,
 		EndDate:         endDate,
@@ -55,7 +61,7 @@ func TestDiscountApplicationFlow(t *testing.T) {
 	assert.Equal(t, 800.00, dto.EffectivePrice) // 20% off = $800
 	assert.True(t, dto.DiscountActive)
 	assert.NotNil(t, dto.DiscountPercent)
-	assert.Equal(t, int64(20), *dto.DiscountPercent)
+	assert.Equal(t, 20.0, *dto.DiscountPercent)
 
 	// Verify discount event
 	testutil.AssertOutboxEvent(t, services.Client, "product.discount.applied")
@@ -102,14 +108,14 @@ func TestDiscountValidation(t *testing.T) {
 		err := services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 			ProductID:       productID,
 			DiscountPercent: 150,
-			StartDate:       time.Now(),
-			EndDate:         time.Now().Add(24 * time.Hour),
+			StartDate:       time.Now().UTC(),
+			EndDate:         time.Now().UTC().Add(24 * time.Hour),
 		})
 		assert.Error(t, err)
 	})
 
 	t.Run("cannot apply discount with invalid date range", func(t *testing.T) {
-		endDate := time.Now()
+		endDate := time.Now().UTC()
 		startDate := endDate.Add(24 * time.Hour) // Start after end
 
 		err := services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
@@ -130,27 +136,37 @@ func TestDiscountValidation(t *testing.T) {
 		err := services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 			ProductID:       inactiveID,
 			DiscountPercent: 20,
-			StartDate:       time.Now(),
-			EndDate:         time.Now().Add(24 * time.Hour),
+			StartDate:       time.Now().UTC(),
+			EndDate:         time.Now().UTC().Add(24 * time.Hour),
 		})
 		assert.ErrorIs(t, err, domain.ErrCannotApplyToInactive)
 	})
 
 	t.Run("cannot apply discount when one already exists", func(t *testing.T) {
+		// Get current version
+		prod, _ := services.ProductRepo.GetByID(ctx(), productID)
+		ver := prod.Version()
+
 		// Apply first discount
 		services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 			ProductID:       productID,
+			Version:         ver,
 			DiscountPercent: 10,
-			StartDate:       time.Now(),
-			EndDate:         time.Now().Add(24 * time.Hour),
+			StartDate:       time.Now().UTC(),
+			EndDate:         time.Now().UTC().Add(24 * time.Hour),
 		})
+
+		// Get updated version
+		prod, _ = services.ProductRepo.GetByID(ctx(), productID)
+		ver = prod.Version()
 
 		// Try to apply second discount
 		err := services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 			ProductID:       productID,
+			Version:         ver,
 			DiscountPercent: 20,
-			StartDate:       time.Now(),
-			EndDate:         time.Now().Add(24 * time.Hour),
+			StartDate:       time.Now().UTC(),
+			EndDate:         time.Now().UTC().Add(24 * time.Hour),
 		})
 		assert.ErrorIs(t, err, domain.ErrDiscountAlreadyActive)
 	})
@@ -167,6 +183,10 @@ func TestDiscountTimeValidity(t *testing.T) {
 	})
 	services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
 
+	// Get version after activation
+	prod, _ := services.ProductRepo.GetByID(ctx(), productID)
+	ver := prod.Version()
+
 	// Set time to June 15, 2025
 	currentTime := time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC)
 	mockClock.Set(currentTime)
@@ -177,6 +197,7 @@ func TestDiscountTimeValidity(t *testing.T) {
 
 	services.ApplyDiscount.Execute(ctx(), &apply_discount.Request{
 		ProductID:       productID,
+		Version:         ver,
 		DiscountPercent: 25,
 		StartDate:       startDate,
 		EndDate:         endDate,

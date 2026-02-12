@@ -27,6 +27,7 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/remove_discount"
+	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_price"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/internal/pkg/committer"
@@ -57,6 +58,7 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 	// Create use cases
 	createProductUC := create_product.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	updateProductUC := update_product.NewInteractor(productRepo, outboxRepo, comm, clk)
+	updatePriceUC := update_price.NewInteractor(productRepo, outboxRepo, priceHistoryRepo, comm, clk)
 	activateProductUC := activate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	deactivateProductUC := deactivate_product.NewInteractor(productRepo, outboxRepo, comm, clk)
 	applyDiscountUC := apply_discount.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -73,6 +75,7 @@ func setupGRPCTest(t *testing.T) (pb.ProductServiceClient, func()) {
 	handler := product.NewHandler(
 		createProductUC,
 		updateProductUC,
+		updatePriceUC,
 		activateProductUC,
 		deactivateProductUC,
 		applyDiscountUC,

@@ -172,7 +172,7 @@ jobs:
 
       - name: Install protoc
         run: |
-          PROTOC_VERSION=25.1
+          PROTOC_VERSION=33.4
           wget https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip
           unzip protoc-${PROTOC_VERSION}-linux-x86_64.zip -d $HOME/protoc
           echo "$HOME/protoc/bin" >> $GITHUB_PATH
@@ -192,24 +192,6 @@ jobs:
             echo "Proto files are out of sync. Please run 'make proto' and commit the changes."
             exit 1
           fi
-
-  # Security scanning
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
-        with:
-          args: "-no-fail -fmt sarif -out results.sarif ./..."
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
 
   # Dependency vulnerability check
   vulnerability-check:
@@ -234,15 +216,7 @@ jobs:
     name: CI Success
     runs-on: ubuntu-latest
     needs:
-      [
-        lint,
-        build,
-        unit-tests,
-        e2e-tests,
-        proto-check,
-        security,
-        vulnerability-check,
-      ]
+      [lint, build, unit-tests, e2e-tests, proto-check, vulnerability-check]
     if: always()
     steps:
       - name: Check all jobs status

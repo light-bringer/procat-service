@@ -32,7 +32,8 @@ func TestProductRepository_InsertMut(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get mutation and apply it
-	mutation := repository.InsertMut(product)
+	mutation, err := repository.InsertMut(product)
+	require.NoError(t, err)
 	require.NotNil(t, mutation)
 
 	_, err = client.Apply(ctx, []*spanner.Mutation{mutation})
@@ -62,7 +63,9 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	price, _ := domain.NewMoney(10000, 100)
 	product, _ := domain.NewProduct("test-id-2", "Original Name", "Description", "electronics", price, now, clk)
 
-	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
+	insertMut, err := repository.InsertMut(product)
+	require.NoError(t, err)
+	_, err = client.Apply(ctx, []*spanner.Mutation{insertMut})
 	require.NoError(t, err)
 
 	// Retrieve and update
@@ -76,7 +79,8 @@ func TestProductRepository_UpdateMut(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get update mutation - should only include dirty fields
-	updateMut := repository.UpdateMut(retrieved)
+	updateMut, err := repository.UpdateMut(retrieved)
+	require.NoError(t, err)
 	require.NotNil(t, updateMut)
 
 	_, err = client.Apply(ctx, []*spanner.Mutation{updateMut})
@@ -102,7 +106,9 @@ func TestProductRepository_UpdateMut_OnlyDirtyFields(t *testing.T) {
 	// Create a product
 	price, _ := domain.NewMoney(10000, 100)
 	product, _ := domain.NewProduct("test-id-3", "Test", "Desc", "electronics", price, now, clk)
-	_, err := client.Apply(ctx, []*spanner.Mutation{repository.InsertMut(product)})
+	insertMut, err := repository.InsertMut(product)
+	require.NoError(t, err)
+	_, err = client.Apply(ctx, []*spanner.Mutation{insertMut})
 	require.NoError(t, err)
 
 	// Retrieve without making changes
@@ -110,7 +116,8 @@ func TestProductRepository_UpdateMut_OnlyDirtyFields(t *testing.T) {
 	require.NoError(t, err)
 
 	// UpdateMut should return nil if no changes
-	updateMut := repository.UpdateMut(retrieved)
+	updateMut, err := repository.UpdateMut(retrieved)
+	require.NoError(t, err)
 	assert.Nil(t, updateMut, "expected nil mutation when no fields are dirty")
 }
 
@@ -155,9 +162,9 @@ func TestProductRepository_ReconstructProductWithDiscount(t *testing.T) {
 	product, err := repository.GetByID(ctx, productID)
 	require.NoError(t, err)
 
-	discount := product.Discount()
+	discount := product.DiscountCopy()
 	require.NotNil(t, discount, "discount should be present")
-	assert.Equal(t, int64(20), discount.Percentage())
+	assert.Equal(t, 20.0, discount.Percentage())
 
 	// Verify effective price calculation
 	now := time.Now()
