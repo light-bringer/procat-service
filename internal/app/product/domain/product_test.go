@@ -385,3 +385,59 @@ func TestProduct_Archive_RemovesDiscount(t *testing.T) {
 		assert.False(t, hasDiscountRemoved, "DiscountRemovedEvent should not be emitted when no discount exists")
 	})
 }
+
+func TestProduct_MarkUpdated(t *testing.T) {
+	price, _ := NewMoney(100, 1)
+	now := time.Now().UTC()
+	clk := clock.NewMockClock(now)
+
+	t.Run("field updates don't emit events until MarkUpdated is called", func(t *testing.T) {
+		p, _ := NewProduct("id-1", "Test Product", "Description", "electronics", price, now, clk)
+		p.ClearEvents() // Clear creation event
+
+		// Update multiple fields
+		err := p.SetName("New Name")
+		require.NoError(t, err)
+		err = p.SetDescription("New Description")
+		require.NoError(t, err)
+		err = p.SetCategory("furniture")
+		require.NoError(t, err)
+
+		// No events should be emitted yet
+		assert.Len(t, p.DomainEvents(), 0, "No events should be emitted before MarkUpdated")
+
+		// Call MarkUpdated to emit single consolidated event
+		updatedTime := now.Add(1 * time.Hour)
+		p.MarkUpdated(updatedTime)
+
+		// Verify single ProductUpdatedEvent was emitted
+		events := p.DomainEvents()
+		require.Len(t, events, 1, "Should emit exactly one ProductUpdatedEvent")
+
+		event, ok := events[0].(*ProductUpdatedEvent)
+		require.True(t, ok, "Event should be ProductUpdatedEvent")
+		assert.Equal(t, "product.updated", event.EventType())
+		assert.Equal(t, "id-1", event.ProductID)
+		assert.Equal(t, "New Name", event.Name)
+		assert.Equal(t, "New Description", event.Description)
+		assert.Equal(t, "furniture", event.Category)
+		assert.Equal(t, updatedTime, event.UpdatedAt)
+	})
+
+	t.Run("MarkUpdated can be called multiple times", func(t *testing.T) {
+		p, _ := NewProduct("id-2", "Product", "Desc", "electronics", price, now, clk)
+		p.ClearEvents()
+
+		// First update
+		p.SetName("Name1")
+		p.MarkUpdated(now)
+		assert.Len(t, p.DomainEvents(), 1)
+
+		p.ClearEvents()
+
+		// Second update
+		p.SetDescription("Desc2")
+		p.MarkUpdated(now.Add(1 * time.Hour))
+		assert.Len(t, p.DomainEvents(), 1)
+	})
+}

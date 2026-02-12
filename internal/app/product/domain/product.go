@@ -182,19 +182,11 @@ func (p *Product) SetName(name string) error {
 	p.name = name
 	p.changes.MarkDirty(FieldName)
 
-	// Record update event (consistent with other domain operations)
-	p.recordEvent(&ProductUpdatedEvent{
-		ProductID:   p.id,
-		Name:        p.name,
-		Description: p.description,
-		Category:    p.category,
-		UpdatedAt:   p.clock.Now(),
-	})
-
 	return nil
 }
 
 // SetDescription updates the product description.
+// Empty descriptions are allowed.
 func (p *Product) SetDescription(description string) error {
 	if err := p.checkNotArchived(); err != nil {
 		return err
@@ -202,14 +194,6 @@ func (p *Product) SetDescription(description string) error {
 
 	p.description = description
 	p.changes.MarkDirty(FieldDescription)
-
-	p.recordEvent(&ProductUpdatedEvent{
-		ProductID:   p.id,
-		Name:        p.name,
-		Description: p.description,
-		Category:    p.category,
-		UpdatedAt:   p.clock.Now(),
-	})
 
 	return nil
 }
@@ -227,15 +211,20 @@ func (p *Product) SetCategory(category string) error {
 	p.category = category
 	p.changes.MarkDirty(FieldCategory)
 
+	return nil
+}
+
+// MarkUpdated emits a ProductUpdatedEvent with the current product state.
+// This should be called by usecases after making one or more field updates
+// to consolidate multiple changes into a single event emission.
+func (p *Product) MarkUpdated(now time.Time) {
 	p.recordEvent(&ProductUpdatedEvent{
 		ProductID:   p.id,
 		Name:        p.name,
 		Description: p.description,
 		Category:    p.category,
-		UpdatedAt:   p.clock.Now(),
+		UpdatedAt:   now,
 	})
-
-	return nil
 }
 
 // SetBasePrice updates the product's base price.
