@@ -61,7 +61,13 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 	plan := committer.NewPlan()
 
 	// 4. Add repository mutation
-	plan.Add(i.repo.UpdateMut(product))
+	mut, err := i.repo.UpdateMut(product)
+	if err != nil {
+		return fmt.Errorf("failed to create update mutation: %w", err)
+	}
+	if mut != nil {
+		plan.Add(mut)
+	}
 
 	// 5. Add outbox events
 	for _, event := range product.DomainEvents() {

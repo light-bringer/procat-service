@@ -13,6 +13,7 @@ import (
 type PriceHistoryRepository interface {
 	// InsertMut creates a mutation for inserting a price change record.
 	// oldPrice can be nil for initial product creation.
+	// Returns error if money values exceed int64 bounds.
 	InsertMut(
 		historyID string,
 		productID string,
@@ -21,7 +22,7 @@ type PriceHistoryRepository interface {
 		changedBy string,
 		changedReason string,
 		changedAt time.Time,
-	) *spanner.Mutation
+	) (*spanner.Mutation, error)
 
 	// GetByProductID retrieves price history for a product, ordered by time (most recent first).
 	GetByProductID(ctx context.Context, productID string, limit int) ([]PriceHistoryRecord, error)

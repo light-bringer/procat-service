@@ -32,16 +32,19 @@ func NewProductRepo(client *spanner.Client, clk clock.Clock) contracts.ProductRe
 }
 
 // InsertMut creates a mutation for inserting a new product.
-func (r *ProductRepo) InsertMut(product *domain.Product) *spanner.Mutation {
-	data := r.domainToData(product)
-	return r.model.InsertMut(data)
+func (r *ProductRepo) InsertMut(product *domain.Product) (*spanner.Mutation, error) {
+	data, err := r.domainToData(product)
+	if err != nil {
+		return nil, err
+	}
+	return r.model.InsertMut(data), nil
 }
 
 // UpdateMut creates a mutation for updating a product (only dirty fields).
-func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
+func (r *ProductRepo) UpdateMut(product *domain.Product) (*spanner.Mutation, error) {
 	changes := product.Changes()
 	if !changes.HasChanges() {
-		return nil
+		return nil, nil
 	}
 
 	updates := make(map[string]interface{})
@@ -59,9 +62,14 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	}
 
 	if changes.Dirty(domain.FieldBasePrice) {
-		basePrice := product.BasePrice()
-		updates[m_product.BasePriceNumerator] = basePrice.Numerator()
-		updates[m_product.BasePriceDenominator] = basePrice.Denominator()
+		basePrice := product.BasePrice().Normalize()
+		if !basePrice.IsSafeForStorage() {
+			return nil, fmt.Errorf("base price exceeds storage capacity: %w", domain.ErrMoneyOverflow)
+		}
+		num, _ := basePrice.Numerator()
+		denom, _ := basePrice.Denominator()
+		updates[m_product.BasePriceNumerator] = num
+		updates[m_product.BasePriceDenominator] = denom
 	}
 
 	if changes.Dirty(domain.FieldDiscount) {
@@ -91,7 +99,7 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	}
 
 	if len(updates) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	// Always update the updated_at timestamp when any field changes
@@ -100,7 +108,7 @@ func (r *ProductRepo) UpdateMut(product *domain.Product) *spanner.Mutation {
 	// Increment version for optimistic locking
 	updates[m_product.Version] = product.Version() + 1
 
-	return r.model.UpdateMut(product.ID(), updates)
+	return r.model.UpdateMut(product.ID(), updates), nil
 }
 
 // GetByID retrieves a product by ID, reconstructing the domain aggregate.
@@ -149,17 +157,25 @@ func (r *ProductRepo) Exists(ctx context.Context, productID string) (bool, error
 }
 
 // domainToData converts a domain Product to database Data.
-func (r *ProductRepo) domainToData(product *domain.Product) *m_product.Data {
+func (r *ProductRepo) domainToData(product *domain.Product) (*m_product.Data, error) {
 	// Normalize price to ensure consistent storage (200/2 → 100/1)
 	normalizedPrice := product.BasePrice().Normalize()
+
+	// Check if price values fit within int64 bounds before storing
+	if !normalizedPrice.IsSafeForStorage() {
+		return nil, fmt.Errorf("price exceeds storage capacity: %w", domain.ErrMoneyOverflow)
+	}
+
+	num, _ := normalizedPrice.Numerator()
+	denom, _ := normalizedPrice.Denominator()
 
 	data := &m_product.Data{
 		ProductID:            product.ID(),
 		Name:                 product.Name(),
 		Description:          product.Description(),
 		Category:             product.Category(),
-		BasePriceNumerator:   normalizedPrice.Numerator(),
-		BasePriceDenominator: normalizedPrice.Denominator(),
+		BasePriceNumerator:   num,
+		BasePriceDenominator: denom,
 		Status:               string(product.Status()),
 		Version:              product.Version(),
 		CreatedAt:            product.CreatedAt(),
@@ -179,7 +195,7 @@ func (r *ProductRepo) domainToData(product *domain.Product) *m_product.Data {
 		data.ArchivedAt = spanner.NullTime{Time: *archivedAt, Valid: true}
 	}
 
-	return data
+	return data, nil
 }
 
 // dataToDomain converts database Data to a domain Product.

@@ -36,27 +36,44 @@ func (r *PriceHistoryRepo) InsertMut(
 	changedBy string,
 	changedReason string,
 	changedAt time.Time,
-) *spanner.Mutation {
+) (*spanner.Mutation, error) {
 	// Normalize prices for consistent storage
 	normalizedNewPrice := newPrice.Normalize()
+
+	// Check if new price values fit within int64 bounds
+	if !normalizedNewPrice.IsSafeForStorage() {
+		return nil, fmt.Errorf("new price exceeds storage capacity: %w", domain.ErrMoneyOverflow)
+	}
+
+	newNum, _ := normalizedNewPrice.Numerator()
+	newDenom, _ := normalizedNewPrice.Denominator()
 
 	data := &m_price_history.Data{
 		HistoryID:           historyID,
 		ProductID:           productID,
-		NewPriceNumerator:   normalizedNewPrice.Numerator(),
-		NewPriceDenominator: normalizedNewPrice.Denominator(),
+		NewPriceNumerator:   newNum,
+		NewPriceDenominator: newDenom,
 		ChangedAt:           changedAt,
 	}
 
 	// oldPrice is nil for initial product creation
 	if oldPrice != nil {
 		normalizedOldPrice := oldPrice.Normalize()
+
+		// Check if old price values fit within int64 bounds
+		if !normalizedOldPrice.IsSafeForStorage() {
+			return nil, fmt.Errorf("old price exceeds storage capacity: %w", domain.ErrMoneyOverflow)
+		}
+
+		oldNum, _ := normalizedOldPrice.Numerator()
+		oldDenom, _ := normalizedOldPrice.Denominator()
+
 		data.OldPriceNumerator = spanner.NullInt64{
-			Int64: normalizedOldPrice.Numerator(),
+			Int64: oldNum,
 			Valid: true,
 		}
 		data.OldPriceDenominator = spanner.NullInt64{
-			Int64: normalizedOldPrice.Denominator(),
+			Int64: oldDenom,
 			Valid: true,
 		}
 	}
@@ -71,7 +88,7 @@ func (r *PriceHistoryRepo) InsertMut(
 		data.ChangedReason = spanner.NullString{StringVal: changedReason, Valid: true}
 	}
 
-	return r.model.InsertMut(data)
+	return r.model.InsertMut(data), nil
 }
 
 // GetByProductID retrieves price history for a product, ordered by time (most recent first).

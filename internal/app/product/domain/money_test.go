@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
@@ -12,8 +13,12 @@ func TestNewMoney(t *testing.T) {
 	t.Run("valid money creation", func(t *testing.T) {
 		m, err := NewMoney(100, 1)
 		require.NoError(t, err)
-		assert.Equal(t, int64(100), m.Numerator())
-		assert.Equal(t, int64(1), m.Denominator())
+		num, err := m.Numerator()
+		require.NoError(t, err)
+		denom, err := m.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(100), num)
+		assert.Equal(t, int64(1), denom)
 	})
 
 	t.Run("zero denominator returns error", func(t *testing.T) {
@@ -113,40 +118,60 @@ func TestMoney_Normalize(t *testing.T) {
 		// 200/2 should normalize to 100/1
 		m, _ := NewMoney(200, 2)
 		normalized := m.Normalize()
-		assert.Equal(t, int64(100), normalized.Numerator())
-		assert.Equal(t, int64(1), normalized.Denominator())
+		num, err := normalized.Numerator()
+		require.NoError(t, err)
+		denom, err := normalized.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(100), num)
+		assert.Equal(t, int64(1), denom)
 	})
 
 	t.Run("normalizes complex fraction", func(t *testing.T) {
 		// 300/6 should normalize to 50/1
 		m, _ := NewMoney(300, 6)
 		normalized := m.Normalize()
-		assert.Equal(t, int64(50), normalized.Numerator())
-		assert.Equal(t, int64(1), normalized.Denominator())
+		num, err := normalized.Numerator()
+		require.NoError(t, err)
+		denom, err := normalized.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(50), num)
+		assert.Equal(t, int64(1), denom)
 	})
 
 	t.Run("already normalized value unchanged", func(t *testing.T) {
 		// 100/1 should stay 100/1
 		m, _ := NewMoney(100, 1)
 		normalized := m.Normalize()
-		assert.Equal(t, int64(100), normalized.Numerator())
-		assert.Equal(t, int64(1), normalized.Denominator())
+		num, err := normalized.Numerator()
+		require.NoError(t, err)
+		denom, err := normalized.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(100), num)
+		assert.Equal(t, int64(1), denom)
 	})
 
 	t.Run("normalizes negative numerator correctly", func(t *testing.T) {
 		// -200/2 should normalize to -100/1
 		m, _ := NewMoney(-200, 2)
 		normalized := m.Normalize()
-		assert.Equal(t, int64(-100), normalized.Numerator())
-		assert.Equal(t, int64(1), normalized.Denominator())
+		num, err := normalized.Numerator()
+		require.NoError(t, err)
+		denom, err := normalized.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(-100), num)
+		assert.Equal(t, int64(1), denom)
 	})
 
 	t.Run("normalizes fractional prices", func(t *testing.T) {
 		// 249900/100 should normalize to 2499/1
 		m, _ := NewMoney(249900, 100)
 		normalized := m.Normalize()
-		assert.Equal(t, int64(2499), normalized.Numerator())
-		assert.Equal(t, int64(1), normalized.Denominator())
+		num, err := normalized.Numerator()
+		require.NoError(t, err)
+		denom, err := normalized.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(2499), num)
+		assert.Equal(t, int64(1), denom)
 	})
 
 	t.Run("preserves value equality after normalization", func(t *testing.T) {
@@ -158,8 +183,16 @@ func TestMoney_Normalize(t *testing.T) {
 		normalized2 := m2.Normalize()
 
 		assert.True(t, normalized1.Equals(normalized2))
-		assert.Equal(t, normalized1.Numerator(), normalized2.Numerator())
-		assert.Equal(t, normalized1.Denominator(), normalized2.Denominator())
+		num1, err := normalized1.Numerator()
+		require.NoError(t, err)
+		num2, err := normalized2.Numerator()
+		require.NoError(t, err)
+		denom1, err := normalized1.Denominator()
+		require.NoError(t, err)
+		denom2, err := normalized2.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, num1, num2)
+		assert.Equal(t, denom1, denom2)
 	})
 }
 
@@ -171,8 +204,10 @@ func TestMoney_EdgeCases(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify it can be stored and retrieved
-		num := largePrice.Numerator()
-		denom := largePrice.Denominator()
+		num, err := largePrice.Numerator()
+		require.NoError(t, err)
+		denom, err := largePrice.Denominator()
+		require.NoError(t, err)
 		assert.Equal(t, int64(9223372036854775807), num)
 		assert.Equal(t, int64(100), denom)
 
@@ -372,5 +407,72 @@ func TestDiscount_EdgeCases(t *testing.T) {
 		afterSecond := discount2.Apply(afterFirst)
 		val2, _ := afterSecond.Float64()
 		assert.Equal(t, 72.0, val2)
+	})
+}
+
+func TestMoney_Overflow(t *testing.T) {
+	t.Run("numerator overflow detection", func(t *testing.T) {
+		// Create a value where numerator exceeds int64 after operations
+		// 2^100 is way larger than MaxInt64 (2^63 - 1)
+		huge := new(big.Int).Lsh(big.NewInt(1), 100) // 2^100
+		hugeRat := new(big.Rat).SetInt(huge)
+		m := NewMoneyFromRat(hugeRat)
+
+		_, err := m.Numerator()
+		assert.ErrorIs(t, err, ErrMoneyOverflow, "should detect numerator overflow")
+		assert.False(t, m.IsSafeForStorage(), "should not be safe for storage")
+	})
+
+	t.Run("denominator overflow detection", func(t *testing.T) {
+		// Create a value where denominator exceeds int64
+		// 1 / 2^100
+		hugeDenom := new(big.Int).Lsh(big.NewInt(1), 100)
+		rat := new(big.Rat).SetFrac(big.NewInt(1), hugeDenom)
+		m := NewMoneyFromRat(rat)
+
+		_, err := m.Denominator()
+		assert.ErrorIs(t, err, ErrMoneyOverflow, "should detect denominator overflow")
+		assert.False(t, m.IsSafeForStorage(), "should not be safe for storage")
+	})
+
+	t.Run("safe values within int64 bounds", func(t *testing.T) {
+		// MaxInt64 = 9223372036854775807
+		safeValue, err := NewMoney(9223372036854775807, 1)
+		require.NoError(t, err)
+
+		num, err := safeValue.Numerator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(9223372036854775807), num)
+
+		denom, err := safeValue.Denominator()
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), denom)
+
+		assert.True(t, safeValue.IsSafeForStorage(), "should be safe for storage")
+	})
+
+	t.Run("operations that cause overflow", func(t *testing.T) {
+		// Start with MaxInt64 and multiply by a large factor
+		maxInt64, _ := NewMoney(9223372036854775807, 1)
+		largeFactor := new(big.Rat).SetInt64(1000000)
+
+		result := maxInt64.MultiplyByRat(largeFactor)
+
+		// Result exceeds int64 bounds
+		_, err := result.Numerator()
+		assert.ErrorIs(t, err, ErrMoneyOverflow)
+		assert.False(t, result.IsSafeForStorage())
+	})
+
+	t.Run("normalized value still overflows", func(t *testing.T) {
+		// Even after normalization, if the value is too large, it should still overflow
+		huge := new(big.Int).Lsh(big.NewInt(1), 100)
+		hugeRat := new(big.Rat).SetInt(huge)
+		m := NewMoneyFromRat(hugeRat)
+
+		normalized := m.Normalize()
+		_, err := normalized.Numerator()
+		assert.ErrorIs(t, err, ErrMoneyOverflow)
+		assert.False(t, normalized.IsSafeForStorage())
 	})
 }

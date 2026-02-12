@@ -78,11 +78,15 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 	plan := committer.NewPlan()
 
 	// 4. Add repository mutation
-	plan.Add(i.repo.InsertMut(product))
+	mut, err := i.repo.InsertMut(product)
+	if err != nil {
+		return "", fmt.Errorf("failed to create product mutation: %w", err)
+	}
+	plan.Add(mut)
 
 	// 5. Add initial price history record (old price = nil for creation)
 	historyID := uuid.New().String()
-	plan.Add(i.priceHistoryRepo.InsertMut(
+	historyMut, err := i.priceHistoryRepo.InsertMut(
 		historyID,
 		productID,
 		nil, // oldPrice is nil for initial creation
@@ -90,7 +94,11 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) (string, error) 
 		"system",        // changedBy - system for initial creation
 		"Initial price", // changedReason
 		now,
-	))
+	)
+	if err != nil {
+		return "", fmt.Errorf("failed to create price history mutation: %w", err)
+	}
+	plan.Add(historyMut)
 
 	// 6. Add outbox events
 	for _, event := range product.DomainEvents() {

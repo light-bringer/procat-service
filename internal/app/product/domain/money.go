@@ -34,13 +34,29 @@ func NewMoneyFromRat(rat *big.Rat) *Money {
 }
 
 // Numerator returns the numerator of the rational number.
-func (m *Money) Numerator() int64 {
-	return m.rat.Num().Int64()
+// Returns an error if the numerator exceeds int64 bounds.
+func (m *Money) Numerator() (int64, error) {
+	num := m.rat.Num()
+	if !num.IsInt64() {
+		return 0, ErrMoneyOverflow
+	}
+	return num.Int64(), nil
 }
 
 // Denominator returns the denominator of the rational number.
-func (m *Money) Denominator() int64 {
-	return m.rat.Denom().Int64()
+// Returns an error if the denominator exceeds int64 bounds.
+func (m *Money) Denominator() (int64, error) {
+	denom := m.rat.Denom()
+	if !denom.IsInt64() {
+		return 0, ErrMoneyOverflow
+	}
+	return denom.Int64(), nil
+}
+
+// IsSafeForStorage checks if both numerator and denominator fit within int64 bounds.
+// This should be checked before attempting to store the Money value in a database.
+func (m *Money) IsSafeForStorage() bool {
+	return m.rat.Num().IsInt64() && m.rat.Denom().IsInt64()
 }
 
 // Add adds two Money values and returns a new Money instance.

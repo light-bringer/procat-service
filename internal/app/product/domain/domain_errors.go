@@ -11,6 +11,7 @@ var (
 	ErrInvalidPrice           = errors.New("product price must be positive")
 	ErrInvalidCategory        = errors.New("product category cannot be empty")
 	ErrOptimisticLockConflict = errors.New("product was modified by another transaction")
+	ErrMoneyOverflow          = errors.New("money value exceeds int64 bounds")
 
 	// Discount errors
 	ErrInvalidDiscountPeriod   = errors.New("discount end date must be after start date")
