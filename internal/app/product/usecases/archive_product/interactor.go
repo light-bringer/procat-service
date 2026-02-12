@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
@@ -41,11 +42,12 @@ func NewInteractor(
 }
 
 // Execute archives a product (soft delete) following the Golden Mutation Pattern.
-func (i *Interactor) Execute(ctx context.Context, req *Request) error {
+// Returns the timestamp when the product was archived.
+func (i *Interactor) Execute(ctx context.Context, req *Request) (time.Time, error) {
 	// 1. Load aggregate
 	product, err := i.repo.GetByID(ctx, req.ProductID)
 	if err != nil {
-		return err
+		return time.Time{}, err
 	}
 
 	// Note: ClearEvents() is called after successful commit, not in defer
@@ -54,7 +56,7 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 	// 2. Call domain method
 	now := i.clock.Now()
 	if err := product.Archive(now); err != nil {
-		return err
+		return time.Time{}, err
 	}
 
 	// 3. Create commit plan
@@ -63,7 +65,7 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 	// 4. Add repository mutation
 	mut, err := i.repo.UpdateMut(product)
 	if err != nil {
-		return fmt.Errorf("failed to create update mutation: %w", err)
+		return time.Time{}, fmt.Errorf("failed to create update mutation: %w", err)
 	}
 	if mut != nil {
 		plan.Add(mut)
@@ -73,7 +75,7 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 	for _, event := range product.DomainEvents() {
 		payload, err := i.serializeEvent(event)
 		if err != nil {
-			return fmt.Errorf("failed to serialize event: %w", err)
+			return time.Time{}, fmt.Errorf("failed to serialize event: %w", err)
 		}
 		outboxEvent := i.outboxRepo.EnrichEvent(event, payload)
 		plan.Add(i.outboxRepo.InsertMut(outboxEvent))
@@ -82,13 +84,13 @@ func (i *Interactor) Execute(ctx context.Context, req *Request) error {
 	// 6. Apply plan with optimistic locking
 	// Always enforce version checking to prevent concurrent modification issues
 	if err := i.committer.ApplyWithVersionCheck(ctx, req.ProductID, req.Version, plan); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return time.Time{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	// Clear events only after successful commit to prevent loss on retry
 	product.ClearEvents()
 
-	return nil
+	return now, nil
 }
 
 // serializeEvent converts a domain event to JSON payload.

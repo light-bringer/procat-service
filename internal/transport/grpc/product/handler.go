@@ -241,11 +241,14 @@ func (h *Handler) ArchiveProduct(ctx context.Context, req *pb.ArchiveProductRequ
 		ProductID: req.ProductId,
 		Version:   req.GetVersion(), // Optional version for optimistic locking
 	}
-	if err := h.archiveProduct.Execute(ctx, appReq); err != nil {
+	archivedAt, err := h.archiveProduct.Execute(ctx, appReq)
+	if err != nil {
 		return nil, mapDomainErrorToGRPC(err)
 	}
 
-	return &pb.ArchiveProductReply{}, nil
+	return &pb.ArchiveProductReply{
+		ArchivedAt: timestamppb.New(archivedAt),
+	}, nil
 }
 
 // GetProduct retrieves a product by ID.

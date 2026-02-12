@@ -134,7 +134,7 @@ message ArchiveProductRequest {
 }
 
 message ArchiveProductReply {
-  // Empty - success indicated by no error
+  google.protobuf.Timestamp archived_at = 1; // When the product was archived
 }
 
 // GetProduct

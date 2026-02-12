@@ -186,12 +186,154 @@ func TestArchiveActiveProduct(t *testing.T) {
 	require.NoError(t, err)
 
 	// Archive active product
-	err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	beforeArchive := time.Now()
+	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
 	require.NoError(t, err)
+	afterArchive := time.Now()
+
+	// Verify archived_at timestamp is reasonable
+	assert.True(t, archivedAt.After(beforeArchive) || archivedAt.Equal(beforeArchive),
+		"archived_at should be after or equal to before timestamp")
+	assert.True(t, archivedAt.Before(afterArchive) || archivedAt.Equal(afterArchive),
+		"archived_at should be before or equal to after timestamp")
+
+	// Verify status and archived_at in database
+	dto, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
+	assert.Equal(t, "archived", dto.Status)
+	require.NotNil(t, dto.ArchivedAt, "ArchivedAt should be set")
+	assert.Equal(t, archivedAt.Unix(), dto.ArchivedAt.Unix(), "ArchivedAt timestamps should match")
+}
+
+func TestArchiveProductWithDiscount(t *testing.T) {
+	services, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create and activate product
+	req := NewProductBuilder().
+		WithName("Product with Discount").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
+	require.NoError(t, err)
+
+	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
+	require.NoError(t, err)
+
+	// Apply discount
+	now := time.Now().UTC()
+	discountReq := &apply_discount.Request{
+		ProductID:       productID,
+		DiscountPercent: 20.0,
+		StartDate:       now.Add(-1 * time.Hour),
+		EndDate:         now.Add(24 * time.Hour),
+	}
+	err = services.ApplyDiscount.Execute(ctx(), discountReq)
+	require.NoError(t, err)
+
+	// Verify discount is active before archiving
+	dtoBeforeArchive, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
+	assert.True(t, dtoBeforeArchive.DiscountActive, "Discount should be active before archiving")
+
+	// Archive product (should remove discount)
+	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	require.NoError(t, err)
+	require.NotZero(t, archivedAt, "ArchivedAt should not be zero")
+
+	// Verify product is archived and discount is removed
+	dtoAfterArchive, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
+	assert.Equal(t, "archived", dtoAfterArchive.Status)
+	assert.False(t, dtoAfterArchive.DiscountActive, "Discount should be removed when archived")
+	assert.NotNil(t, dtoAfterArchive.ArchivedAt, "ArchivedAt should be set")
+}
+
+func TestArchiveInactiveProduct(t *testing.T) {
+	services, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create inactive product (default status is inactive)
+	req := NewProductBuilder().
+		WithName("Inactive to Archive").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
+	require.NoError(t, err)
+
+	// Archive inactive product
+	archivedAt, err := services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	require.NoError(t, err)
+	require.NotZero(t, archivedAt, "ArchivedAt should not be zero")
 
 	// Verify status
 	dto, _ := services.GetProduct.Execute(ctx(), &get_product.Request{ProductID: productID})
 	assert.Equal(t, "archived", dto.Status)
+	assert.NotNil(t, dto.ArchivedAt)
+}
+
+func TestCannotModifyArchivedProduct(t *testing.T) {
+	services, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create and archive product
+	req := NewProductBuilder().
+		WithName("To Be Archived").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
+	require.NoError(t, err)
+
+	_, err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	require.NoError(t, err)
+
+	// Try to activate archived product - should fail
+	err = services.ActivateProduct.Execute(ctx(), &activate_product.Request{ProductID: productID})
+	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived, "Should not be able to activate archived product")
+
+	// Try to deactivate archived product - should fail
+	err = services.DeactivateProduct.Execute(ctx(), &deactivate_product.Request{ProductID: productID})
+	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived, "Should not be able to deactivate archived product")
+
+	// Try to apply discount to archived product - should fail
+	now := time.Now().UTC()
+	discountReq := &apply_discount.Request{
+		ProductID:       productID,
+		DiscountPercent: 20.0,
+		StartDate:       now.Add(-1 * time.Hour),
+		EndDate:         now.Add(24 * time.Hour),
+	}
+	err = services.ApplyDiscount.Execute(ctx(), discountReq)
+	assert.ErrorIs(t, err, domain.ErrCannotModifyArchived, "Should not be able to apply discount to archived product")
+}
+
+func TestArchiveAlreadyArchivedProduct(t *testing.T) {
+	services, cleanup := setupTest(t)
+	defer cleanup()
+
+	// Create and archive product
+	req := NewProductBuilder().
+		WithName("Already Archived").
+		WithDescription("Test").
+		WithCategory("electronics").
+		WithPrice(100.00).
+		Build()
+
+	productID, err := services.CreateProduct.Execute(ctx(), req)
+	require.NoError(t, err)
+
+	_, err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	require.NoError(t, err)
+
+	// Try to archive again - should fail
+	_, err = services.ArchiveProduct.Execute(ctx(), &archive_product.Request{ProductID: productID})
+	assert.ErrorIs(t, err, domain.ErrAlreadyArchived, "Should not be able to archive already archived product")
 }
 
 func TestBusinessRuleValidations(t *testing.T) {
