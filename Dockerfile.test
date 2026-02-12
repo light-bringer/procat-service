@@ -1,16 +1,44 @@
-FROM golang:1.25-alpine
+# Multi-stage Dockerfile for testing
 
-RUN apk add --no-cache make git curl
+# Base test image with all dependencies
+FROM golang:1.25-alpine AS test-base
+
+# Install required packages
+RUN apk add --no-cache \
+    make \
+    git \
+    curl \
+    bash \
+    ca-certificates
 
 WORKDIR /app
 
-# Cache dependencies layer
+# Install gcloud CLI for Spanner emulator operations
+RUN apk add --no-cache python3 py3-pip && \
+    curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-linux-x86_64.tar.gz && \
+    tar -xf google-cloud-cli-linux-x86_64.tar.gz && \
+    ./google-cloud-sdk/install.sh --quiet && \
+    rm google-cloud-cli-linux-x86_64.tar.gz
+
+ENV PATH="/app/google-cloud-sdk/bin:${PATH}"
+
+# Install Go test tools
+RUN go install github.com/google/go-cloud/cmd/spanner-cli@latest
+
+# Copy go mod files for dependency caching
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copy source code
 COPY . .
 
-# Install test tools
-RUN go install github.com/google/go-cloud/cmd/spanner-cli@latest
+# Make scripts executable
+RUN chmod +x scripts/*.sh
 
-CMD ["make", "test-all"]
+# Default command (can be overridden)
+CMD ["go", "test", "-v", "./..."]
+
+# CI runner stage - runs complete test suite
+FROM test-base AS test-ci
+
+CMD ["sh", "-c", "./scripts/run_tests.sh"]

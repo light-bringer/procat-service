@@ -13,19 +13,155 @@ services:
       retries: 10
     environment:
       - SPANNER_EMULATOR_HOST=localhost:9010
+    networks:
+      - test-network
 
-  test-runner:
+  # Unit tests runner (no DB needed)
+  test-unit:
     build:
       context: .
       dockerfile: Dockerfile.test
+      target: test-base
+    volumes:
+      - .:/app
+      - go-cache:/go/pkg/mod
+    working_dir: /app
+    command: ["go", "test", "-v", "-race", "-count=1", "./internal/app/product/domain/..."]
+    networks:
+      - test-network
+
+  # Integration tests runner (with Spanner)
+  test-integration:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: test-base
     depends_on:
       spanner-test:
         condition: service_healthy
     environment:
       - SPANNER_EMULATOR_HOST=spanner-test:9010
-      - TEST_DB_INSTANCE=test-instance
-      - TEST_DB_NAME=test-db
+      - SPANNER_PROJECT_ID=test-project
+      - TEST_INSTANCE_ID=test-instance
+      - TEST_DATABASE_ID=product-catalog-test
     volumes:
       - .:/app
-      - /app/vendor  # Cache dependencies
-    command: make test-all
+      - go-cache:/go/pkg/mod
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Setting up test database...' &&
+        ./scripts/setup_test_db.sh &&
+        echo 'Running integration tests...' &&
+        go test -v -race -count=1 -tags=integration ./tests/integration/...
+      "
+    networks:
+      - test-network
+
+  # E2E tests runner (full stack)
+  test-e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: test-base
+    depends_on:
+      spanner-test:
+        condition: service_healthy
+    environment:
+      - SPANNER_EMULATOR_HOST=spanner-test:9010
+      - SPANNER_PROJECT_ID=test-project
+      - TEST_INSTANCE_ID=test-instance
+      - TEST_DATABASE_ID=product-catalog-test
+    volumes:
+      - .:/app
+      - go-cache:/go/pkg/mod
+    working_dir: /app
+    command: >
+      sh -c "
+        echo 'Setting up test database...' &&
+        ./scripts/setup_test_db.sh &&
+        echo 'Running E2E tests...' &&
+        go test -v -race -count=1 -timeout=5m ./tests/e2e/...
+      "
+    networks:
+      - test-network
+
+  # All tests runner (comprehensive suite)
+  test-all:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: test-base
+    depends_on:
+      spanner-test:
+        condition: service_healthy
+    environment:
+      - SPANNER_EMULATOR_HOST=spanner-test:9010
+      - SPANNER_PROJECT_ID=test-project
+      - TEST_INSTANCE_ID=test-instance
+      - TEST_DATABASE_ID=product-catalog-test
+    volumes:
+      - .:/app
+      - go-cache:/go/pkg/mod
+      - ./coverage-reports:/app/coverage-reports
+    working_dir: /app
+    command: >
+      sh -c "
+        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' &&
+        echo 'Product Catalog Service - Test Suite' &&
+        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━' &&
+        echo '' &&
+        echo '1. Running Unit Tests...' &&
+        go test -v -race -count=1 ./internal/app/product/domain/... &&
+        echo '' &&
+        echo '2. Setting up test database...' &&
+        ./scripts/setup_test_db.sh &&
+        echo '' &&
+        echo '3. Running Integration Tests...' &&
+        go test -v -race -count=1 -tags=integration ./tests/integration/... &&
+        echo '' &&
+        echo '4. Running E2E Tests...' &&
+        go test -v -race -count=1 -timeout=5m ./tests/e2e/... &&
+        echo '' &&
+        echo '5. Generating Coverage Report...' &&
+        go test -coverprofile=coverage-reports/coverage.out -covermode=atomic ./... &&
+        go tool cover -func=coverage-reports/coverage.out | tail -1 &&
+        echo '' &&
+        echo '✓ All tests completed successfully!'
+      "
+    networks:
+      - test-network
+
+  # Coverage report generator
+  test-coverage:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      target: test-base
+    depends_on:
+      spanner-test:
+        condition: service_healthy
+    environment:
+      - SPANNER_EMULATOR_HOST=spanner-test:9010
+      - SPANNER_PROJECT_ID=test-project
+    volumes:
+      - .:/app
+      - go-cache:/go/pkg/mod
+      - ./coverage-reports:/app/coverage-reports
+    working_dir: /app
+    command: >
+      sh -c "
+        ./scripts/setup_test_db.sh &&
+        go test -coverprofile=coverage-reports/coverage.out -covermode=atomic ./... &&
+        go tool cover -html=coverage-reports/coverage.out -o coverage-reports/coverage.html &&
+        go tool cover -func=coverage-reports/coverage.out
+      "
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  go-cache:

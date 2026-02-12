@@ -110,6 +110,48 @@ test-docker: ## Run tests inside Docker container (CI simulation)
 	docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit
 	docker-compose -f docker-compose.test.yml down -v
 
+.PHONY: docker-test-unit
+docker-test-unit: ## Run unit tests in Docker
+	docker-compose -f docker-compose.test.yml run --rm test-unit
+
+.PHONY: docker-test-integration
+docker-test-integration: ## Run integration tests in Docker with Spanner
+	docker-compose -f docker-compose.test.yml up -d spanner-test
+	docker-compose -f docker-compose.test.yml run --rm test-integration
+	docker-compose -f docker-compose.test.yml down -v
+
+.PHONY: docker-test-e2e
+docker-test-e2e: ## Run E2E tests in Docker with Spanner
+	docker-compose -f docker-compose.test.yml up -d spanner-test
+	docker-compose -f docker-compose.test.yml run --rm test-e2e
+	docker-compose -f docker-compose.test.yml down -v
+
+.PHONY: docker-test-all
+docker-test-all: ## Run complete test suite in Docker
+	docker-compose -f docker-compose.test.yml up --build -d spanner-test
+	@echo "Waiting for Spanner emulator..."
+	@sleep 5
+	docker-compose -f docker-compose.test.yml run --rm test-all
+	docker-compose -f docker-compose.test.yml down -v
+
+.PHONY: docker-test-coverage
+docker-test-coverage: ## Generate coverage report in Docker
+	mkdir -p coverage-reports
+	docker-compose -f docker-compose.test.yml up -d spanner-test
+	@echo "Waiting for Spanner emulator..."
+	@sleep 5
+	docker-compose -f docker-compose.test.yml run --rm test-coverage
+	docker-compose -f docker-compose.test.yml down -v
+	@echo ""
+	@echo "Coverage report generated:"
+	@echo "  - coverage-reports/coverage.out (raw)"
+	@echo "  - coverage-reports/coverage.html (view in browser)"
+
+.PHONY: docker-test-watch
+docker-test-watch: ## Watch and re-run unit tests in Docker on file changes
+	docker-compose -f docker-compose.test.yml run --rm test-unit
+	@echo "Note: For true watch mode, use 'make test-watch' on host"
+
 # ==================================================================================== #
 # BUILD & RUN
 # ==================================================================================== #
