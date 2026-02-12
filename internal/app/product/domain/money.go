@@ -127,8 +127,9 @@ func (m *Money) Equals(other *Money) bool {
 // NEVER use for calculations - use the rational number operations instead.
 //
 // Example:
-//   m := NewMoney(100, 3)  // 33.333...
-//   f, exact := m.Float64()  // f ≈ 33.333..., exact = false (repeating decimal)
+//
+//	m := NewMoney(100, 3)  // 33.333...
+//	f, exact := m.Float64()  // f ≈ 33.333..., exact = false (repeating decimal)
 func (m *Money) Float64() (float64, bool) {
 	return m.rat.Float64()
 }

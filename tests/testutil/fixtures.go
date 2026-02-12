@@ -8,10 +8,9 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/require"
-
 	"github.com/light-bringer/procat-service/internal/models/m_outbox"
 	"github.com/light-bringer/procat-service/internal/models/m_product"
+	"github.com/stretchr/testify/require"
 )
 
 // CreateTestProduct creates a test product directly in the database.

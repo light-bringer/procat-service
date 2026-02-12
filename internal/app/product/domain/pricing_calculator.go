@@ -10,10 +10,10 @@ import (
 // ARCHITECTURE NOTE:
 // This service centralizes pricing logic and is used by domain objects (Discount, Product)
 // to perform calculations. Benefits:
-//   1. Single source of truth for pricing formulas
-//   2. Easier to test pricing logic in isolation
-//   3. Simplifies future pricing strategy changes
-//   4. Domain objects delegate to this service for all pricing operations
+//  1. Single source of truth for pricing formulas
+//  2. Easier to test pricing logic in isolation
+//  3. Simplifies future pricing strategy changes
+//  4. Domain objects delegate to this service for all pricing operations
 type PricingCalculator struct{}
 
 // NewPricingCalculator creates a new PricingCalculator instance.

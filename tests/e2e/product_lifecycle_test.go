@@ -4,9 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
@@ -16,6 +13,8 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/deactivate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/tests/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProductCreationFlow(t *testing.T) {

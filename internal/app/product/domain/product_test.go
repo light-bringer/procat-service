@@ -4,10 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/light-bringer/procat-service/internal/pkg/clock"
 )
 
 func TestNewProduct(t *testing.T) {

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
-
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 )
 
@@ -30,11 +29,11 @@ type PriceHistoryRepository interface {
 
 // PriceHistoryRecord represents a price change record.
 type PriceHistoryRecord struct {
-	HistoryID   string
-	ProductID   string
-	OldPrice    *domain.Money // nil for initial price
-	NewPrice    *domain.Money
-	ChangedBy   string
+	HistoryID     string
+	ProductID     string
+	OldPrice      *domain.Money // nil for initial price
+	NewPrice      *domain.Money
+	ChangedBy     string
 	ChangedReason string
-	ChangedAt   time.Time
+	ChangedAt     time.Time
 }

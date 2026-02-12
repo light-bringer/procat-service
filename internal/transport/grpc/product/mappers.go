@@ -1,11 +1,10 @@
 package product
 
 import (
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	pb "github.com/light-bringer/procat-service/proto/product/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // protoMoneyToDomain converts proto Money to domain Money.

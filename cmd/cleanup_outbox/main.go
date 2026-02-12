@@ -177,7 +177,6 @@ func performCleanup(ctx context.Context, client *spanner.Client, completedCutoff
 
 		return nil
 	})
-
 	if err != nil {
 		return fmt.Errorf("cleanup transaction failed: %w", err)
 	}

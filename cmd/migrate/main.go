@@ -198,7 +198,6 @@ func applyMigrations(ctx context.Context) error {
 		migrationName := filepath.Base(file)
 		log.Printf("Applying %s...", migrationName)
 
-
 		content, err := os.ReadFile(file)
 		if err != nil {
 			return fmt.Errorf("failed to read migration file %s: %w", file, err)

@@ -10,13 +10,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
-
 	"github.com/light-bringer/procat-service/internal/services"
 	httphandler "github.com/light-bringer/procat-service/internal/transport/http"
 	pb "github.com/light-bringer/procat-service/proto/product/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {

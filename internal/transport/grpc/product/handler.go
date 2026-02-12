@@ -5,10 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_events"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
@@ -21,6 +17,9 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_price"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	pb "github.com/light-bringer/procat-service/proto/product/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Handler implements the gRPC ProductService interface.

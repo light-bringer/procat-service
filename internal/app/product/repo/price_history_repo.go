@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
-
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/models/m_price_history"
+	"google.golang.org/api/iterator"
 )
 
 // PriceHistoryRepo implements PriceHistoryRepository for Spanner.

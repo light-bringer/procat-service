@@ -1,12 +1,35 @@
+# golangci-lint configuration
+# See https://golangci-lint.run/usage/configuration/
+
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  go: "1.25"
+
+output:
+  formats:
+    stdout:
+      template: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
+
 linters-settings:
   errcheck:
     check-type-assertions: true
     check-blank: true
+    exclude-functions:
+      - (io.Closer).Close
 
   govet:
     enable-all: true
     disable:
       - shadow # too many false positives
+      - fieldalignment # performance optimization, not critical
 
   gocyclo:
     min-complexity: 15
@@ -20,12 +43,12 @@ linters-settings:
 
   misspell:
     locale: US
+    ignore-words:
+      - procat # project name
 
   lll:
     line-length: 140
-
-  goimports:
-    local-prefixes: github.com/light-bringer/procat-service
+    tab-width: 4
 
   gocritic:
     enabled-tags:
@@ -37,26 +60,90 @@ linters-settings:
     disabled-checks:
       - whyNoLint
       - unnamedResult
+      - hugeParam # false positives with domain entities
+
+  revive:
+    rules:
+      - name: exported
+        disabled: true # too noisy for internal packages
+      - name: package-comments
+        disabled: true # documentation not required for all packages
+      - name: var-naming
+        disabled: false
+      - name: indent-error-flow
+        disabled: false
+      - name: error-return
+        disabled: false
+      - name: error-naming
+        disabled: false
+
+  gosec:
+    excludes:
+      - G104 # Duplicates errcheck
+      - G307 # File defer close errors handled by errcheck
+    config:
+      G301: "0750" # Directory permissions
+      G302: "0640" # File permissions
+      G306: "0640" # File permissions
+
+  nolintlint:
+    allow-unused: false
+    allow-no-explanation: []
+    require-explanation: true
+    require-specific: true
+
+formatters:
+  enable:
+    - gofmt # Format code
+    - gofumpt # Stricter gofmt
+    - goimports # Format imports
+    - gci # Control Go import order
+
+formatters-settings:
+  gofumpt:
+    extra-rules: true
+    lang-version: "1.25"
+    module-path: github.com/light-bringer/procat-service
+  goimports:
+    local-prefixes: github.com/light-bringer/procat-service
 
 linters:
   disable-all: true
   enable:
-    - errcheck      # Check for unchecked errors
-    - gosimple      # Simplify code
-    - govet         # Vet examines Go source code
-    - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Go static analysis
-    - typecheck     # Type-check Go code
-    - unused        # Check for unused code
-    - gofmt         # Check code formatting
-    - goimports     # Check import formatting
-    - misspell      # Check for misspelled words
-    - goconst       # Find repeated strings
-    - gocyclo       # Check cyclomatic complexity
-    - dupl          # Check for code duplication
-    - gosec         # Security checks
-    - unconvert     # Remove unnecessary type conversions
-    - gocritic      # Comprehensive Go linter
+    # Essential linters (enabled by default)
+    - errcheck # Check for unchecked errors
+    - govet # Vet examines Go source code
+    - ineffassign # Detect ineffectual assignments
+    - staticcheck # Go static analysis (includes gosimple checks)
+    - unused # Check for unused code
+
+    # Code quality
+    - misspell # Check for misspelled words
+    - goconst # Find repeated strings
+    - gocyclo # Check cyclomatic complexity
+    - dupl # Check for code duplication
+    - unconvert # Remove unnecessary type conversions
+    - gocritic # Comprehensive Go linter
+    - revive # Replacement for golint
+    - whitespace # Check for unnecessary whitespace
+
+    # Security
+    - gosec # Security checks
+
+    # Bugs
+    - bodyclose # Check HTTP response body is closed
+    - nilerr # Check for nil error returns
+    - nilnil # Check for nil returns with nil error
+    - rowserrcheck # Check sql.Rows.Err is checked
+    - copyloopvar # Check for loop variable copying issues
+
+    # Style
+    - dogsled # Check for too many blank identifiers
+    - nakedret # Check for naked returns
+    - nolintlint # Ensure nolint directives are properly formatted
+
+    # Performance
+    - prealloc # Check for slice preallocation
 
 issues:
   exclude-use-default: false
@@ -68,6 +155,10 @@ issues:
         - dupl
         - gosec
         - goconst
+        - funlen
+        - gocognit
+        - lll
+        - maintidx
 
     # Exclude generated proto files
     - path: \.pb\.go$
@@ -79,11 +170,29 @@ issues:
       linters:
         - all
 
+    # Exclude test utilities and fixtures
+    - path: tests/testutil/
+      linters:
+        - goconst
+        - dupl
+
+    # Allow dot imports in tests for testify
+    - path: _test\.go
+      text: "dot imports"
+      linters:
+        - revive
+
+    # Domain layer intentionally has no external deps
+    - path: internal/app/product/domain/
+      text: "shadows an import name"
+      linters:
+        - govet
+
   max-issues-per-linter: 0
   max-same-issues: 0
+  new: false
+  fix: false
 
-run:
-  timeout: 5m
-  tests: true
-  modules-download-mode: readonly
-  allow-parallel-runners: true
+severity:
+  default-severity: error
+  case-sensitive: false

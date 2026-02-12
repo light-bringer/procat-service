@@ -1,10 +1,9 @@
 package product
 
 import (
+	pb "github.com/light-bringer/procat-service/proto/product/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	pb "github.com/light-bringer/procat-service/proto/product/v1"
 )
 
 // validateCreateProductRequest validates the CreateProduct request.

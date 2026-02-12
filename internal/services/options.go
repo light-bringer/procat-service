@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
-
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_events"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"

@@ -4,11 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_price"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpdatePrice(t *testing.T) {

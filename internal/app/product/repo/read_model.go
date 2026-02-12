@@ -7,14 +7,13 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
-	"google.golang.org/grpc/codes"
-
 	"github.com/light-bringer/procat-service/internal/app/product/contracts"
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/models/m_product"
 	"github.com/light-bringer/procat-service/internal/pkg/clock"
 	"github.com/light-bringer/procat-service/internal/pkg/query"
+	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
 )
 
 // ReadModelImpl implements ReadModel for Spanner.

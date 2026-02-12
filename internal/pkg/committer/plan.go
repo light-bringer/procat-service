@@ -178,7 +178,6 @@ func (c *Committer) ApplyWithVersionCheck(ctx context.Context, productID string,
 		// Version matches, apply mutations
 		return txn.BufferWrite(plan.Mutations())
 	})
-
 	if err != nil {
 		// Check if it's a version mismatch error
 		errMsg := err.Error()

@@ -58,8 +58,8 @@ func TestMoney_Subtract(t *testing.T) {
 }
 
 func TestMoney_Multiply(t *testing.T) {
-	m1, _ := NewMoney(100, 1)  // 100
-	m2, _ := NewMoney(3, 2)    // 1.5
+	m1, _ := NewMoney(100, 1) // 100
+	m2, _ := NewMoney(3, 2)   // 1.5
 
 	result := m1.Multiply(m2)
 	val, _ := result.Float64()
@@ -103,7 +103,7 @@ func TestMoney_Comparisons(t *testing.T) {
 
 func TestMoney_Precision(t *testing.T) {
 	// Test precise decimal arithmetic - no floating point errors
-	m1, _ := NewMoney(249900, 100) // $2499.00
+	m1, _ := NewMoney(249900, 100)   // $2499.00
 	discount, _ := NewMoney(20, 100) // 20%
 
 	discountAmount := m1.MultiplyByRat(discount.rat)
@@ -176,8 +176,8 @@ func TestMoney_Normalize(t *testing.T) {
 
 	t.Run("preserves value equality after normalization", func(t *testing.T) {
 		// Different representations of the same value should equal after normalization
-		m1, _ := NewMoney(200, 2)    // 100
-		m2, _ := NewMoney(400, 4)    // 100
+		m1, _ := NewMoney(200, 2) // 100
+		m2, _ := NewMoney(400, 4) // 100
 
 		normalized1 := m1.Normalize()
 		normalized2 := m2.Normalize()

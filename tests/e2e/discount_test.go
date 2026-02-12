@@ -4,9 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
@@ -14,6 +11,8 @@ import (
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/create_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/remove_discount"
 	"github.com/light-bringer/procat-service/tests/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDiscountApplicationFlow(t *testing.T) {

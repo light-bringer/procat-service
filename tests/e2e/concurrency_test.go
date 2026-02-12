@@ -6,15 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/apply_discount"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/update_product"
 	"github.com/light-bringer/procat-service/internal/pkg/committer"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestConcurrentDiscountApplication tests two goroutines applying different discounts.

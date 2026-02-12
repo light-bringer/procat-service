@@ -5,10 +5,9 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
-
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_events"
 	"github.com/light-bringer/procat-service/internal/models/m_outbox"
+	"google.golang.org/api/iterator"
 )
 
 // EventsReadModel implements the EventsReadModel interface for Spanner.

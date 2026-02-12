@@ -10,7 +10,7 @@ import (
 // Supports fractional percentages (e.g., 12.5%, 7.25%) for flexible pricing.
 // Uses *big.Rat internally for precise arithmetic.
 type Discount struct {
-	percentage         *big.Rat  // 0.0-100.0, stored as rational for precision
+	percentage         *big.Rat // 0.0-100.0, stored as rational for precision
 	startDate          time.Time
 	endDate            time.Time
 	discountMultiplier *big.Rat // Cached percentage/100 for performance

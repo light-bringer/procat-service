@@ -8,15 +8,15 @@ import (
 
 // Data represents a price history record in the database.
 type Data struct {
-	HistoryID             string         `spanner:"history_id"`
-	ProductID             string         `spanner:"product_id"`
-	OldPriceNumerator     spanner.NullInt64 `spanner:"old_price_numerator"`
-	OldPriceDenominator   spanner.NullInt64 `spanner:"old_price_denominator"`
-	NewPriceNumerator     int64          `spanner:"new_price_numerator"`
-	NewPriceDenominator   int64          `spanner:"new_price_denominator"`
-	ChangedBy             spanner.NullString `spanner:"changed_by"`
-	ChangedReason         spanner.NullString `spanner:"changed_reason"`
-	ChangedAt             time.Time      `spanner:"changed_at"`
+	HistoryID           string             `spanner:"history_id"`
+	ProductID           string             `spanner:"product_id"`
+	OldPriceNumerator   spanner.NullInt64  `spanner:"old_price_numerator"`
+	OldPriceDenominator spanner.NullInt64  `spanner:"old_price_denominator"`
+	NewPriceNumerator   int64              `spanner:"new_price_numerator"`
+	NewPriceDenominator int64              `spanner:"new_price_denominator"`
+	ChangedBy           spanner.NullString `spanner:"changed_by"`
+	ChangedReason       spanner.NullString `spanner:"changed_reason"`
+	ChangedAt           time.Time          `spanner:"changed_at"`
 }
 
 // Model provides type-safe database operations for price history.

@@ -3,10 +3,9 @@ package product
 import (
 	"errors"
 
+	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/light-bringer/procat-service/internal/app/product/domain"
 )
 
 // mapDomainErrorToGRPC converts domain errors to gRPC status codes.

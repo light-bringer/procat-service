@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	pb "github.com/light-bringer/procat-service/proto/product/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	pb "github.com/light-bringer/procat-service/proto/product/v1"
 )
 
 func main() {

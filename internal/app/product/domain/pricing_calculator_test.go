@@ -13,7 +13,7 @@ func TestPricingCalculator_CalculateDiscountAmount(t *testing.T) {
 	pc := NewPricingCalculator()
 
 	t.Run("calculates discount amount correctly", func(t *testing.T) {
-		price, _ := NewMoney(10000, 100) // $100.00
+		price, _ := NewMoney(10000, 100)            // $100.00
 		multiplier := new(big.Rat).SetFloat64(0.20) // 20%
 
 		discountAmount := pc.CalculateDiscountAmount(price, multiplier)
@@ -32,7 +32,7 @@ func TestPricingCalculator_CalculateDiscountAmount(t *testing.T) {
 	})
 
 	t.Run("fractional discount percentage", func(t *testing.T) {
-		price, _ := NewMoney(10000, 100) // $100.00
+		price, _ := NewMoney(10000, 100)             // $100.00
 		multiplier := new(big.Rat).SetFloat64(0.125) // 12.5%
 
 		discountAmount := pc.CalculateDiscountAmount(price, multiplier)
@@ -46,7 +46,7 @@ func TestPricingCalculator_ApplyDiscount(t *testing.T) {
 	pc := NewPricingCalculator()
 
 	t.Run("applies discount correctly", func(t *testing.T) {
-		price, _ := NewMoney(10000, 100) // $100.00
+		price, _ := NewMoney(10000, 100)            // $100.00
 		multiplier := new(big.Rat).SetFloat64(0.20) // 20%
 
 		finalPrice := pc.ApplyDiscount(price, multiplier)
