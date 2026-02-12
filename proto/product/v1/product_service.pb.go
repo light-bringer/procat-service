@@ -1065,6 +1065,220 @@ func (x *ListProductsReply) GetTotalCount() int64 {
 	return 0
 }
 
+// Event represents a domain event from the outbox.
+type Event struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventId       string                 `protobuf:"bytes,1,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	AggregateId   string                 `protobuf:"bytes,3,opt,name=aggregate_id,json=aggregateId,proto3" json:"aggregate_id,omitempty"`
+	Payload       string                 `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	ProcessedAt   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=processed_at,json=processedAt,proto3" json:"processed_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Event) Reset() {
+	*x = Event{}
+	mi := &file_proto_product_v1_product_service_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Event) ProtoMessage() {}
+
+func (x *Event) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_product_v1_product_service_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Event.ProtoReflect.Descriptor instead.
+func (*Event) Descriptor() ([]byte, []int) {
+	return file_proto_product_v1_product_service_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *Event) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *Event) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *Event) GetAggregateId() string {
+	if x != nil {
+		return x.AggregateId
+	}
+	return ""
+}
+
+func (x *Event) GetPayload() string {
+	if x != nil {
+		return x.Payload
+	}
+	return ""
+}
+
+func (x *Event) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *Event) GetProcessedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ProcessedAt
+	}
+	return nil
+}
+
+// ListEvents
+type ListEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventType     *string                `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3,oneof" json:"event_type,omitempty"`       // Filter by event type (e.g., "product.created")
+	AggregateId   *string                `protobuf:"bytes,2,opt,name=aggregate_id,json=aggregateId,proto3,oneof" json:"aggregate_id,omitempty"` // Filter by aggregate ID
+	Status        *string                `protobuf:"bytes,3,opt,name=status,proto3,oneof" json:"status,omitempty"`                              // Filter by status ("pending", "processed", "failed")
+	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`                                     // Max number of events to return (default: 100)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventsRequest) Reset() {
+	*x = ListEventsRequest{}
+	mi := &file_proto_product_v1_product_service_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventsRequest) ProtoMessage() {}
+
+func (x *ListEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_product_v1_product_service_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventsRequest.ProtoReflect.Descriptor instead.
+func (*ListEventsRequest) Descriptor() ([]byte, []int) {
+	return file_proto_product_v1_product_service_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *ListEventsRequest) GetEventType() string {
+	if x != nil && x.EventType != nil {
+		return *x.EventType
+	}
+	return ""
+}
+
+func (x *ListEventsRequest) GetAggregateId() string {
+	if x != nil && x.AggregateId != nil {
+		return *x.AggregateId
+	}
+	return ""
+}
+
+func (x *ListEventsRequest) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *ListEventsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListEventsReply struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Events        []*Event               `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+	TotalCount    int64                  `protobuf:"varint,2,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventsReply) Reset() {
+	*x = ListEventsReply{}
+	mi := &file_proto_product_v1_product_service_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventsReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventsReply) ProtoMessage() {}
+
+func (x *ListEventsReply) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_product_v1_product_service_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventsReply.ProtoReflect.Descriptor instead.
+func (*ListEventsReply) Descriptor() ([]byte, []int) {
+	return file_proto_product_v1_product_service_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListEventsReply) GetEvents() []*Event {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+func (x *ListEventsReply) GetTotalCount() int64 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
 var File_proto_product_v1_product_service_proto protoreflect.FileDescriptor
 
 const file_proto_product_v1_product_service_proto_rawDesc = "" +
@@ -1150,7 +1364,30 @@ const file_proto_product_v1_product_service_proto_rawDesc = "" +
 	"\bproducts\x18\x01 \x03(\v2\x13.product.v1.ProductR\bproducts\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x03R\n" +
-	"totalCount2\x87\x06\n" +
+	"totalCount\"\x90\x02\n" +
+	"\x05Event\x12\x19\n" +
+	"\bevent_id\x18\x01 \x01(\tR\aeventId\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12!\n" +
+	"\faggregate_id\x18\x03 \x01(\tR\vaggregateId\x12\x18\n" +
+	"\apayload\x18\x04 \x01(\tR\apayload\x12\x16\n" +
+	"\x06status\x18\x05 \x01(\tR\x06status\x129\n" +
+	"\n" +
+	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12=\n" +
+	"\fprocessed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vprocessedAt\"\xbd\x01\n" +
+	"\x11ListEventsRequest\x12\"\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tH\x00R\teventType\x88\x01\x01\x12&\n" +
+	"\faggregate_id\x18\x02 \x01(\tH\x01R\vaggregateId\x88\x01\x01\x12\x1b\n" +
+	"\x06status\x18\x03 \x01(\tH\x02R\x06status\x88\x01\x01\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limitB\r\n" +
+	"\v_event_typeB\x0f\n" +
+	"\r_aggregate_idB\t\n" +
+	"\a_status\"]\n" +
+	"\x0fListEventsReply\x12)\n" +
+	"\x06events\x18\x01 \x03(\v2\x11.product.v1.EventR\x06events\x12\x1f\n" +
+	"\vtotal_count\x18\x02 \x01(\x03R\n" +
+	"totalCount2\xd1\x06\n" +
 	"\x0eProductService\x12Q\n" +
 	"\rCreateProduct\x12 .product.v1.CreateProductRequest\x1a\x1e.product.v1.CreateProductReply\x12Q\n" +
 	"\rUpdateProduct\x12 .product.v1.UpdateProductRequest\x1a\x1e.product.v1.UpdateProductReply\x12W\n" +
@@ -1161,7 +1398,9 @@ const file_proto_product_v1_product_service_proto_rawDesc = "" +
 	"\x0eArchiveProduct\x12!.product.v1.ArchiveProductRequest\x1a\x1f.product.v1.ArchiveProductReply\x12H\n" +
 	"\n" +
 	"GetProduct\x12\x1d.product.v1.GetProductRequest\x1a\x1b.product.v1.GetProductReply\x12N\n" +
-	"\fListProducts\x12\x1f.product.v1.ListProductsRequest\x1a\x1d.product.v1.ListProductsReplyBDZBgithub.com/light-bringer/procat-service/proto/product/v1;productv1b\x06proto3"
+	"\fListProducts\x12\x1f.product.v1.ListProductsRequest\x1a\x1d.product.v1.ListProductsReply\x12H\n" +
+	"\n" +
+	"ListEvents\x12\x1d.product.v1.ListEventsRequest\x1a\x1b.product.v1.ListEventsReplyBDZBgithub.com/light-bringer/procat-service/proto/product/v1;productv1b\x06proto3"
 
 var (
 	file_proto_product_v1_product_service_proto_rawDescOnce sync.Once
@@ -1175,7 +1414,7 @@ func file_proto_product_v1_product_service_proto_rawDescGZIP() []byte {
 	return file_proto_product_v1_product_service_proto_rawDescData
 }
 
-var file_proto_product_v1_product_service_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_proto_product_v1_product_service_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_proto_product_v1_product_service_proto_goTypes = []any{
 	(*Money)(nil),                    // 0: product.v1.Money
 	(*Product)(nil),                  // 1: product.v1.Product
@@ -1197,39 +1436,47 @@ var file_proto_product_v1_product_service_proto_goTypes = []any{
 	(*GetProductReply)(nil),          // 17: product.v1.GetProductReply
 	(*ListProductsRequest)(nil),      // 18: product.v1.ListProductsRequest
 	(*ListProductsReply)(nil),        // 19: product.v1.ListProductsReply
-	(*timestamppb.Timestamp)(nil),    // 20: google.protobuf.Timestamp
+	(*Event)(nil),                    // 20: product.v1.Event
+	(*ListEventsRequest)(nil),        // 21: product.v1.ListEventsRequest
+	(*ListEventsReply)(nil),          // 22: product.v1.ListEventsReply
+	(*timestamppb.Timestamp)(nil),    // 23: google.protobuf.Timestamp
 }
 var file_proto_product_v1_product_service_proto_depIdxs = []int32{
-	20, // 0: product.v1.Product.created_at:type_name -> google.protobuf.Timestamp
-	20, // 1: product.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
+	23, // 0: product.v1.Product.created_at:type_name -> google.protobuf.Timestamp
+	23, // 1: product.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: product.v1.CreateProductRequest.base_price:type_name -> product.v1.Money
-	20, // 3: product.v1.ApplyDiscountRequest.start_date:type_name -> google.protobuf.Timestamp
-	20, // 4: product.v1.ApplyDiscountRequest.end_date:type_name -> google.protobuf.Timestamp
+	23, // 3: product.v1.ApplyDiscountRequest.start_date:type_name -> google.protobuf.Timestamp
+	23, // 4: product.v1.ApplyDiscountRequest.end_date:type_name -> google.protobuf.Timestamp
 	1,  // 5: product.v1.GetProductReply.product:type_name -> product.v1.Product
 	1,  // 6: product.v1.ListProductsReply.products:type_name -> product.v1.Product
-	2,  // 7: product.v1.ProductService.CreateProduct:input_type -> product.v1.CreateProductRequest
-	4,  // 8: product.v1.ProductService.UpdateProduct:input_type -> product.v1.UpdateProductRequest
-	6,  // 9: product.v1.ProductService.ActivateProduct:input_type -> product.v1.ActivateProductRequest
-	8,  // 10: product.v1.ProductService.DeactivateProduct:input_type -> product.v1.DeactivateProductRequest
-	10, // 11: product.v1.ProductService.ApplyDiscount:input_type -> product.v1.ApplyDiscountRequest
-	12, // 12: product.v1.ProductService.RemoveDiscount:input_type -> product.v1.RemoveDiscountRequest
-	14, // 13: product.v1.ProductService.ArchiveProduct:input_type -> product.v1.ArchiveProductRequest
-	16, // 14: product.v1.ProductService.GetProduct:input_type -> product.v1.GetProductRequest
-	18, // 15: product.v1.ProductService.ListProducts:input_type -> product.v1.ListProductsRequest
-	3,  // 16: product.v1.ProductService.CreateProduct:output_type -> product.v1.CreateProductReply
-	5,  // 17: product.v1.ProductService.UpdateProduct:output_type -> product.v1.UpdateProductReply
-	7,  // 18: product.v1.ProductService.ActivateProduct:output_type -> product.v1.ActivateProductReply
-	9,  // 19: product.v1.ProductService.DeactivateProduct:output_type -> product.v1.DeactivateProductReply
-	11, // 20: product.v1.ProductService.ApplyDiscount:output_type -> product.v1.ApplyDiscountReply
-	13, // 21: product.v1.ProductService.RemoveDiscount:output_type -> product.v1.RemoveDiscountReply
-	15, // 22: product.v1.ProductService.ArchiveProduct:output_type -> product.v1.ArchiveProductReply
-	17, // 23: product.v1.ProductService.GetProduct:output_type -> product.v1.GetProductReply
-	19, // 24: product.v1.ProductService.ListProducts:output_type -> product.v1.ListProductsReply
-	16, // [16:25] is the sub-list for method output_type
-	7,  // [7:16] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	23, // 7: product.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	23, // 8: product.v1.Event.processed_at:type_name -> google.protobuf.Timestamp
+	20, // 9: product.v1.ListEventsReply.events:type_name -> product.v1.Event
+	2,  // 10: product.v1.ProductService.CreateProduct:input_type -> product.v1.CreateProductRequest
+	4,  // 11: product.v1.ProductService.UpdateProduct:input_type -> product.v1.UpdateProductRequest
+	6,  // 12: product.v1.ProductService.ActivateProduct:input_type -> product.v1.ActivateProductRequest
+	8,  // 13: product.v1.ProductService.DeactivateProduct:input_type -> product.v1.DeactivateProductRequest
+	10, // 14: product.v1.ProductService.ApplyDiscount:input_type -> product.v1.ApplyDiscountRequest
+	12, // 15: product.v1.ProductService.RemoveDiscount:input_type -> product.v1.RemoveDiscountRequest
+	14, // 16: product.v1.ProductService.ArchiveProduct:input_type -> product.v1.ArchiveProductRequest
+	16, // 17: product.v1.ProductService.GetProduct:input_type -> product.v1.GetProductRequest
+	18, // 18: product.v1.ProductService.ListProducts:input_type -> product.v1.ListProductsRequest
+	21, // 19: product.v1.ProductService.ListEvents:input_type -> product.v1.ListEventsRequest
+	3,  // 20: product.v1.ProductService.CreateProduct:output_type -> product.v1.CreateProductReply
+	5,  // 21: product.v1.ProductService.UpdateProduct:output_type -> product.v1.UpdateProductReply
+	7,  // 22: product.v1.ProductService.ActivateProduct:output_type -> product.v1.ActivateProductReply
+	9,  // 23: product.v1.ProductService.DeactivateProduct:output_type -> product.v1.DeactivateProductReply
+	11, // 24: product.v1.ProductService.ApplyDiscount:output_type -> product.v1.ApplyDiscountReply
+	13, // 25: product.v1.ProductService.RemoveDiscount:output_type -> product.v1.RemoveDiscountReply
+	15, // 26: product.v1.ProductService.ArchiveProduct:output_type -> product.v1.ArchiveProductReply
+	17, // 27: product.v1.ProductService.GetProduct:output_type -> product.v1.GetProductReply
+	19, // 28: product.v1.ProductService.ListProducts:output_type -> product.v1.ListProductsReply
+	22, // 29: product.v1.ProductService.ListEvents:output_type -> product.v1.ListEventsReply
+	20, // [20:30] is the sub-list for method output_type
+	10, // [10:20] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_proto_product_v1_product_service_proto_init() }
@@ -1239,13 +1486,14 @@ func file_proto_product_v1_product_service_proto_init() {
 	}
 	file_proto_product_v1_product_service_proto_msgTypes[1].OneofWrappers = []any{}
 	file_proto_product_v1_product_service_proto_msgTypes[4].OneofWrappers = []any{}
+	file_proto_product_v1_product_service_proto_msgTypes[21].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_product_v1_product_service_proto_rawDesc), len(file_proto_product_v1_product_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

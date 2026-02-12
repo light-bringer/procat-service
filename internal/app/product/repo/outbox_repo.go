@@ -25,11 +25,14 @@ func NewOutboxRepo(client *spanner.Client) contracts.OutboxRepository {
 
 // InsertMut creates a mutation for inserting an outbox event.
 func (r *OutboxRepo) InsertMut(event *contracts.OutboxEvent) *spanner.Mutation {
+	// Wrap payload string as JSON for Spanner
+	payload := spanner.NullJSON{Value: event.Payload, Valid: event.Payload != ""}
+
 	data := &m_outbox.Data{
 		EventID:     event.EventID,
 		EventType:   event.EventType,
 		AggregateID: event.AggregateID,
-		Payload:     event.Payload,
+		Payload:     payload,
 		Status:      event.Status,
 		RetryCount:  0,
 	}

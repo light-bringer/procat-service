@@ -11,7 +11,7 @@ type Data struct {
 	EventID      string
 	EventType    string
 	AggregateID  string
-	Payload      string // JSON
+	Payload      spanner.NullJSON // JSON column
 	Status       string
 	CreatedAt    time.Time
 	ProcessedAt  spanner.NullTime

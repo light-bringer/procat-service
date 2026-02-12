@@ -2,11 +2,15 @@ package product
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
+	"github.com/light-bringer/procat-service/internal/app/product/queries/list_events"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/apply_discount"
@@ -35,6 +39,7 @@ type Handler struct {
 	// Queries
 	getProduct   *get_product.Query
 	listProducts *list_products.Query
+	listEvents   *list_events.Query
 }
 
 // NewHandler creates a new gRPC product handler.
@@ -48,6 +53,7 @@ func NewHandler(
 	archiveProduct *archive_product.Interactor,
 	getProduct *get_product.Query,
 	listProducts *list_products.Query,
+	listEvents *list_events.Query,
 ) *Handler {
 	return &Handler{
 		createProduct:     createProduct,
@@ -59,6 +65,7 @@ func NewHandler(
 		archiveProduct:    archiveProduct,
 		getProduct:        getProduct,
 		listProducts:      listProducts,
+		listEvents:        listEvents,
 	}
 }
 
@@ -236,5 +243,61 @@ func (h *Handler) ListProducts(ctx context.Context, req *pb.ListProductsRequest)
 		Products:      products,
 		NextPageToken: result.NextPageToken,
 		TotalCount:    result.TotalCount,
+	}, nil
+}
+
+// ListEvents retrieves a list of domain events from the outbox.
+func (h *Handler) ListEvents(ctx context.Context, req *pb.ListEventsRequest) (*pb.ListEventsReply, error) {
+	queryReq := &list_events.Request{
+		Limit: int(req.Limit),
+	}
+
+	// Set optional filters
+	if req.EventType != nil {
+		queryReq.EventType = req.EventType
+	}
+	if req.AggregateId != nil {
+		queryReq.AggregateID = req.AggregateId
+	}
+	if req.Status != nil {
+		queryReq.Status = req.Status
+	}
+
+	events, totalCount, err := h.listEvents.Execute(ctx, queryReq)
+	if err != nil {
+		// Temporarily return the actual error for debugging
+		return nil, status.Error(codes.Internal, fmt.Sprintf("failed to list events: %v", err))
+	}
+
+	// Convert events to proto
+	protoEvents := make([]*pb.Event, 0, len(events))
+	for _, event := range events {
+		// Convert NullJSON to string
+		payload := ""
+		if event.Payload.Valid {
+			// NullJSON.Value is interface{}, need to marshal to JSON string
+			payloadBytes, err := json.Marshal(event.Payload.Value)
+			if err == nil {
+				payload = string(payloadBytes)
+			}
+		}
+
+		protoEvent := &pb.Event{
+			EventId:     event.EventID,
+			EventType:   event.EventType,
+			AggregateId: event.AggregateID,
+			Payload:     payload,
+			Status:      event.Status,
+			CreatedAt:   timestamppb.New(event.CreatedAt),
+		}
+		if event.ProcessedAt.Valid {
+			protoEvent.ProcessedAt = timestamppb.New(event.ProcessedAt.Time)
+		}
+		protoEvents = append(protoEvents, protoEvent)
+	}
+
+	return &pb.ListEventsReply{
+		Events:     protoEvents,
+		TotalCount: totalCount,
 	}, nil
 }

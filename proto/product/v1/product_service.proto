@@ -20,6 +20,7 @@ service ProductService {
   // Queries (read operations)
   rpc GetProduct(GetProductRequest) returns (GetProductReply);
   rpc ListProducts(ListProductsRequest) returns (ListProductsReply);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsReply);
 }
 
 // Money represents a monetary value with precise decimal representation.
@@ -136,4 +137,28 @@ message ListProductsReply {
   repeated Product products = 1;
   string next_page_token = 2;
   int64 total_count = 3;
+}
+
+// Event represents a domain event from the outbox.
+message Event {
+  string event_id = 1;
+  string event_type = 2;
+  string aggregate_id = 3;
+  string payload = 4;
+  string status = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp processed_at = 7;
+}
+
+// ListEvents
+message ListEventsRequest {
+  optional string event_type = 1;    // Filter by event type (e.g., "product.created")
+  optional string aggregate_id = 2;  // Filter by aggregate ID
+  optional string status = 3;        // Filter by status ("pending", "processed", "failed")
+  int32 limit = 4;                   // Max number of events to return (default: 100)
+}
+
+message ListEventsReply {
+  repeated Event events = 1;
+  int64 total_count = 2;
 }

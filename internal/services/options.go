@@ -7,6 +7,7 @@ import (
 	"cloud.google.com/go/spanner"
 
 	"github.com/light-bringer/procat-service/internal/app/product/queries/get_product"
+	"github.com/light-bringer/procat-service/internal/app/product/queries/list_events"
 	"github.com/light-bringer/procat-service/internal/app/product/queries/list_products"
 	"github.com/light-bringer/procat-service/internal/app/product/repo"
 	"github.com/light-bringer/procat-service/internal/app/product/usecases/activate_product"
@@ -23,7 +24,7 @@ import (
 
 // ServiceOptions holds all dependencies for the application.
 type ServiceOptions struct {
-	SpannerClient *spanner.Client
+	SpannerClient  *spanner.Client
 	ProductHandler *product.Handler
 }
 
@@ -42,7 +43,8 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 	// 3. Create repositories
 	productRepo := repo.NewProductRepo(spannerClient)
 	outboxRepo := repo.NewOutboxRepo(spannerClient)
-	readModel := repo.NewReadModel(spannerClient)
+	readModel := repo.NewReadModel(spannerClient, clk)
+	eventsReadModel := repo.NewEventsReadModel(spannerClient)
 
 	// 4. Create command use cases (write operations)
 	createProductUseCase := create_product.NewInteractor(productRepo, outboxRepo, comm, clk)
@@ -56,6 +58,7 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 	// 5. Create query use cases (read operations)
 	getProductQuery := get_product.NewQuery(readModel)
 	listProductsQuery := list_products.NewQuery(readModel)
+	listEventsQuery := list_events.NewQuery(eventsReadModel)
 
 	// 6. Create gRPC handler
 	productHandler := product.NewHandler(
@@ -68,6 +71,7 @@ func NewServiceOptions(ctx context.Context, spannerDB string) (*ServiceOptions, 
 		archiveProductUseCase,
 		getProductQuery,
 		listProductsQuery,
+		listEventsQuery,
 	)
 
 	return &ServiceOptions{
