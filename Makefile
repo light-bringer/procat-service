@@ -61,11 +61,11 @@ docker-test-down: ## Stop test environment
 
 .PHONY: migrate
 migrate: ## Run migrations on dev database
-	SPANNER_EMULATOR_HOST=localhost:9010 ./scripts/migrate.sh dev-instance product-catalog-db
+	SPANNER_EMULATOR_HOST=localhost:9010 go run cmd/migrate/main.go -instance=dev-instance -database=product-catalog-db
 
 .PHONY: migrate-test
 migrate-test: ## Run migrations on test database
-	SPANNER_EMULATOR_HOST=localhost:19010 ./scripts/setup_test_db.sh
+	SPANNER_EMULATOR_HOST=localhost:19010 go run cmd/migrate/main.go -instance=test-instance -database=product-catalog-test
 
 .PHONY: migrate-clean
 migrate-clean: ## Clean and recreate test database
@@ -179,7 +179,7 @@ run: ## Run the gRPC server locally
 
 .PHONY: run-dev
 run-dev: docker-up migrate ## Start dev environment and run server
-	go run ./cmd/server/
+	SPANNER_EMULATOR_HOST=localhost:9010 go run ./cmd/server/
 
 # ==================================================================================== #
 # CODE QUALITY

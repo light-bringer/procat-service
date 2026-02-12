@@ -1,7 +1,7 @@
 -- Product Catalog Service - Initial Schema
 
 -- Products table
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   product_id STRING(36) NOT NULL,
   name STRING(255) NOT NULL,
   description STRING(MAX),
@@ -22,13 +22,13 @@ CREATE TABLE products (
 ) PRIMARY KEY (product_id);
 
 -- Index for listing products by category
-CREATE INDEX idx_products_category_status ON products(category, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_products_category_status ON products(category, status, created_at DESC);
 
 -- Index for listing active products
-CREATE INDEX idx_products_status_created ON products(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_products_status_created ON products(status, created_at DESC);
 
 -- Outbox events table for transactional event publishing
-CREATE TABLE outbox_events (
+CREATE TABLE IF NOT EXISTS outbox_events (
   event_id STRING(36) NOT NULL,
   event_type STRING(100) NOT NULL,
   aggregate_id STRING(36) NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE outbox_events (
 ) PRIMARY KEY (event_id);
 
 -- Index for polling pending events
-CREATE INDEX idx_outbox_status_created ON outbox_events(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_outbox_status_created ON outbox_events(status, created_at);
 
 -- Index for finding events by aggregate
-CREATE INDEX idx_outbox_aggregate ON outbox_events(aggregate_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_outbox_aggregate ON outbox_events(aggregate_id, created_at DESC);
