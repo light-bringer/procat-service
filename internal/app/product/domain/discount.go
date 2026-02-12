@@ -98,17 +98,13 @@ func (d *Discount) Multiplier() *big.Rat {
 
 // Apply applies the discount to a price and returns the discounted price.
 // Formula: discountedPrice = price - (price * percentage / 100)
-// Uses cached discount multiplier for performance.
+// Delegates to PricingCalculator for centralized pricing logic.
 func (d *Discount) Apply(price *Money) *Money {
-	// Calculate discount amount using cached multiplier
-	discountAmount := price.MultiplyByRat(d.discountMultiplier)
-
-	// Return: price - discountAmount
-	return price.Subtract(discountAmount)
+	return defaultPricingCalculator.ApplyDiscount(price, d.discountMultiplier)
 }
 
 // CalculateDiscountAmount calculates the discount amount (not the final price).
-// Uses cached discount multiplier for performance.
+// Delegates to PricingCalculator for centralized pricing logic.
 func (d *Discount) CalculateDiscountAmount(price *Money) *Money {
-	return price.MultiplyByRat(d.discountMultiplier)
+	return defaultPricingCalculator.CalculateDiscountAmount(price, d.discountMultiplier)
 }

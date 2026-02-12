@@ -377,11 +377,9 @@ func (p *Product) Archive(now time.Time) error {
 }
 
 // CalculateEffectivePrice calculates the current price considering active discounts.
+// Delegates to PricingCalculator for centralized pricing logic.
 func (p *Product) CalculateEffectivePrice(now time.Time) *Money {
-	if p.discount != nil && p.discount.IsValidAt(now) {
-		return p.discount.Apply(p.basePrice)
-	}
-	return p.basePrice.Copy()
+	return defaultPricingCalculator.CalculateEffectivePrice(p.basePrice, p.discount, now)
 }
 
 // IsActive returns true if the product is active.

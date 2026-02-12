@@ -1,11 +1,10 @@
-package services
+package domain
 
 import (
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/light-bringer/procat-service/internal/app/product/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +13,7 @@ func TestPricingCalculator_CalculateDiscountAmount(t *testing.T) {
 	pc := NewPricingCalculator()
 
 	t.Run("calculates discount amount correctly", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100) // $100.00
+		price, _ := NewMoney(10000, 100) // $100.00
 		multiplier := new(big.Rat).SetFloat64(0.20) // 20%
 
 		discountAmount := pc.CalculateDiscountAmount(price, multiplier)
@@ -24,7 +23,7 @@ func TestPricingCalculator_CalculateDiscountAmount(t *testing.T) {
 	})
 
 	t.Run("zero multiplier returns zero discount", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100)
+		price, _ := NewMoney(10000, 100)
 		multiplier := new(big.Rat).SetFloat64(0.0)
 
 		discountAmount := pc.CalculateDiscountAmount(price, multiplier)
@@ -33,7 +32,7 @@ func TestPricingCalculator_CalculateDiscountAmount(t *testing.T) {
 	})
 
 	t.Run("fractional discount percentage", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100) // $100.00
+		price, _ := NewMoney(10000, 100) // $100.00
 		multiplier := new(big.Rat).SetFloat64(0.125) // 12.5%
 
 		discountAmount := pc.CalculateDiscountAmount(price, multiplier)
@@ -47,7 +46,7 @@ func TestPricingCalculator_ApplyDiscount(t *testing.T) {
 	pc := NewPricingCalculator()
 
 	t.Run("applies discount correctly", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100) // $100.00
+		price, _ := NewMoney(10000, 100) // $100.00
 		multiplier := new(big.Rat).SetFloat64(0.20) // 20%
 
 		finalPrice := pc.ApplyDiscount(price, multiplier)
@@ -57,7 +56,7 @@ func TestPricingCalculator_ApplyDiscount(t *testing.T) {
 	})
 
 	t.Run("100% discount returns zero", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100)
+		price, _ := NewMoney(10000, 100)
 		multiplier := new(big.Rat).SetFloat64(1.0) // 100%
 
 		finalPrice := pc.ApplyDiscount(price, multiplier)
@@ -66,7 +65,7 @@ func TestPricingCalculator_ApplyDiscount(t *testing.T) {
 	})
 
 	t.Run("zero discount returns original price", func(t *testing.T) {
-		price, _ := domain.NewMoney(10000, 100)
+		price, _ := NewMoney(10000, 100)
 		multiplier := new(big.Rat).SetFloat64(0.0)
 
 		finalPrice := pc.ApplyDiscount(price, multiplier)
@@ -80,8 +79,8 @@ func TestPricingCalculator_CalculateEffectivePrice(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("applies valid discount", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(10000, 100) // $100.00
-		discount, err := domain.NewDiscount(20, now.Add(-1*time.Hour), now.Add(1*time.Hour))
+		basePrice, _ := NewMoney(10000, 100) // $100.00
+		discount, err := NewDiscount(20, now.Add(-1*time.Hour), now.Add(1*time.Hour))
 		require.NoError(t, err)
 
 		effectivePrice := pc.CalculateEffectivePrice(basePrice, discount, now)
@@ -91,9 +90,9 @@ func TestPricingCalculator_CalculateEffectivePrice(t *testing.T) {
 	})
 
 	t.Run("ignores expired discount", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(10000, 100)
+		basePrice, _ := NewMoney(10000, 100)
 		// Discount expired 2 hours ago
-		discount, err := domain.NewDiscount(20, now.Add(-3*time.Hour), now.Add(-1*time.Hour))
+		discount, err := NewDiscount(20, now.Add(-3*time.Hour), now.Add(-1*time.Hour))
 		require.NoError(t, err)
 
 		effectivePrice := pc.CalculateEffectivePrice(basePrice, discount, now)
@@ -103,9 +102,9 @@ func TestPricingCalculator_CalculateEffectivePrice(t *testing.T) {
 	})
 
 	t.Run("ignores future discount", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(10000, 100)
+		basePrice, _ := NewMoney(10000, 100)
 		// Discount starts in 1 hour
-		discount, err := domain.NewDiscount(20, now.Add(1*time.Hour), now.Add(3*time.Hour))
+		discount, err := NewDiscount(20, now.Add(1*time.Hour), now.Add(3*time.Hour))
 		require.NoError(t, err)
 
 		effectivePrice := pc.CalculateEffectivePrice(basePrice, discount, now)
@@ -115,7 +114,7 @@ func TestPricingCalculator_CalculateEffectivePrice(t *testing.T) {
 	})
 
 	t.Run("returns base price when no discount", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(10000, 100)
+		basePrice, _ := NewMoney(10000, 100)
 
 		effectivePrice := pc.CalculateEffectivePrice(basePrice, nil, now)
 
@@ -123,8 +122,8 @@ func TestPricingCalculator_CalculateEffectivePrice(t *testing.T) {
 	})
 
 	t.Run("preserves precision with fractional discount", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(249900, 100) // $2499.00
-		discount, err := domain.NewDiscount(12.5, now.Add(-1*time.Hour), now.Add(1*time.Hour))
+		basePrice, _ := NewMoney(249900, 100) // $2499.00
+		discount, err := NewDiscount(12.5, now.Add(-1*time.Hour), now.Add(1*time.Hour))
 		require.NoError(t, err)
 
 		effectivePrice := pc.CalculateEffectivePrice(basePrice, discount, now)
@@ -141,8 +140,8 @@ func TestPricingCalculator_EdgeCases(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("very small price with discount", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(1, 100) // $0.01
-		discount, err := domain.NewDiscount(50, now.Add(-1*time.Hour), now.Add(1*time.Hour))
+		basePrice, _ := NewMoney(1, 100) // $0.01
+		discount, err := NewDiscount(50, now.Add(-1*time.Hour), now.Add(1*time.Hour))
 		require.NoError(t, err)
 
 		effectivePrice := pc.CalculateEffectivePrice(basePrice, discount, now)
@@ -152,7 +151,7 @@ func TestPricingCalculator_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("multiple discount applications preserve precision", func(t *testing.T) {
-		basePrice, _ := domain.NewMoney(10000, 100) // $100.00
+		basePrice, _ := NewMoney(10000, 100) // $100.00
 
 		// Apply 20% discount
 		multiplier1 := new(big.Rat).SetFloat64(0.20)
