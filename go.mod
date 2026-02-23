@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/spanner v1.88.0
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.11.1
-	google.golang.org/api v0.266.0
+	google.golang.org/api v0.267.0
 	google.golang.org/grpc v1.79.0
 	google.golang.org/protobuf v1.36.11
 )
